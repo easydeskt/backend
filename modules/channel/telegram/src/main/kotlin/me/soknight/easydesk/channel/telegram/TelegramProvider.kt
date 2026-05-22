@@ -47,6 +47,7 @@ object TelegramProvider : ChannelProvider, KoinComponent {
         }
 
         section("webhook") {
+            boolean("enabled")
             url("url", required = true)
             text("listen_path", defaultValue = "/telegram/webhook")
             password("secret_token")
