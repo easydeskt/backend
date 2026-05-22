@@ -7,6 +7,7 @@ hikaricp = "7.0.2"
 jakarta-mail = "2.1.5"
 jline = "4.1.1"
 koin-platform = "4.2.1"
+mockk = "1.14.3"
 koin-plugin = "1.0.0"
 kotlin-platform = "2.3.21"
 kotlinx-coroutines = "1.11.0"
@@ -42,7 +43,9 @@ kslog-jvm = { module = "dev.inmo:kslog-jvm", version.ref = "kslog" }
 ktgbotapi = { module = "dev.inmo:tgbotapi", version.ref = "ktgbotapi" }
 ktorfit-ksp = { module = "de.jensklingenberg.ktorfit:ktorfit-ksp", version.ref = "ktorfit" }
 ktorfit-lib-light = { module = "de.jensklingenberg.ktorfit:ktorfit-lib-light", version.ref = "ktorfit" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
 slf4j-jul-bridge = { module = "org.slf4j:jul-to-slf4j", version.ref = "slf4j" }
@@ -56,6 +59,7 @@ ktor-server-cio = { module = "io.ktor:ktor-server-cio", version.ref = "ktor" }
 ktor-server-config-yaml = { module = "io.ktor:ktor-server-config-yaml", version.ref = "ktor" }
 ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation", version.ref = "ktor" }
 ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
+ktor-server-test-host = { module = "io.ktor:ktor-server-test-host", version.ref = "ktor" }
 ktor-server-cors = { module = "io.ktor:ktor-server-cors", version.ref = "ktor" }
 ktor-server-routing-openapi = { module = "io.ktor:ktor-server-routing-openapi", version.ref = "ktor" }
 ktor-server-status-pages = { module = "io.ktor:ktor-server-status-pages", version.ref = "ktor" }

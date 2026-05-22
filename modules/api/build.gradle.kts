@@ -19,6 +19,13 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.routing.openapi)
+
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.ktor.serialization.kotlinx.json)
+    testImplementation(libs.ktor.server.content.negotiation)
+    testImplementation(libs.ktor.server.test.host)
+    testImplementation(libs.logback.classic)
+    testImplementation(libs.mockk)
 }
 
 ktor {
