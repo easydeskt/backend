@@ -1,0 +1,22 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="EasyDesk Ktor App (PG)" type="KtorApplicationConfigurationType" factoryName="Ktor">
+    <option name="envFilePaths">
+      <option value="$PROJECT_DIR$/run/.env" />
+    </option>
+    <option name="MAIN_CLASS_NAME" value="me.soknight.easydesk.app.AppKt" />
+    <module name="backend.modules.app.main" />
+    <shortenClasspath name="ARGS_FILE" />
+    <option name="VM_PARAMETERS" value="--enable-native-access=ALL-UNNAMED" />
+    <option name="alternativeJrePath" />
+    <option name="alternativeJrePathEnabled" value="false" />
+    <option name="includeProvidedScope" value="false" />
+    <option name="mainClass" value="me.soknight.easydesk.app.AppKt" />
+    <option name="passParentEnvs" value="true" />
+    <option name="programParameters" />
+    <option name="shortenCommandLine" value="ARGS_FILE" />
+    <option name="vmParameters" value="--enable-native-access=ALL-UNNAMED" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

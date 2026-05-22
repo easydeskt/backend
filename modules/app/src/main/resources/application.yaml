@@ -1,0 +1,25 @@
+ktor:
+  application:
+    modules:
+      - me.soknight.easydesk.app.server.EasyDeskServerKt.module
+
+  deployment:
+    host: "$KTOR_SERVER_HOST"
+    port: "$KTOR_SERVER_PORT"
+
+easydesk:
+  api:
+    devAuthSkip: "$DEV_AUTH_SKIP:false"
+
+  database:
+    url: "$DATABASE_URL"
+    username: "$DATABASE_USERNAME"
+    password: "$DATABASE_PASSWORD"
+    maxPoolSize: "$DATABASE_MAX_POOL_SIZE:10"
+    minIdle: "$DATABASE_MIN_IDLE:2"
+
+  supervisor:
+    telegram:
+      token: "$TELEGRAM_SUPERVISOR_BOT_TOKEN"
+      groupId: "$TELEGRAM_SUPERVISOR_GROUP_ID"
+      superadminId: "$TELEGRAM_SUPERVISOR_SUPERADMIN_ID"

@@ -1,0 +1,12 @@
+.gradle/
+.kotlin/
+build/
+*.jar
+*.iml
+*.log
+*.log.gz
+.env
+
+# do not ignore Gradle wrapper files
+!**/gradle/wrapper/gradle-wrapper.jar
+!**/gradle/wrapper/gradle-wrapper.properties
