@@ -23,3 +23,6 @@ easydesk:
       token: "$TELEGRAM_SUPERVISOR_BOT_TOKEN"
       groupId: "$TELEGRAM_SUPERVISOR_GROUP_ID"
       superadminId: "$TELEGRAM_SUPERVISOR_SUPERADMIN_ID"
+
+  workspace:
+    name: "$WORKSPACE_NAME:EasyDesk"
