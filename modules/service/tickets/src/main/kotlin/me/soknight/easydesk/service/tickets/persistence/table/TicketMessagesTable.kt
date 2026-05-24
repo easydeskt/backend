@@ -4,6 +4,7 @@ package me.soknight.easydesk.service.tickets.persistence.table
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import me.soknight.easydesk.core.persistence.pgEnum
 import me.soknight.easydesk.service.tickets.data.domain.ActorKind
 import org.jetbrains.exposed.v1.core.dao.id.LongIdTable
 import org.jetbrains.exposed.v1.datetime.timestamp
@@ -20,7 +21,7 @@ internal object TicketMessagesTable : LongIdTable("ticket_messages") {
     val platformTimestamp = timestamp("platform_timestamp")
     val senderAgentId = uuid("sender_agent_id").nullable()
     val senderIdentityId = long("sender_identity_id").nullable()
-    val senderKind = enumerationByName<ActorKind>("sender_kind", 16)
+    val senderKind = pgEnum<ActorKind>("sender_kind", "actor_kind")
     val ticketId = long("ticket_id")
 
 }

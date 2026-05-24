@@ -4,6 +4,7 @@ package me.soknight.easydesk.service.tickets.persistence.table
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import me.soknight.easydesk.core.persistence.pgEnum
 import me.soknight.easydesk.supervisor.api.model.Ticket.Priority
 import me.soknight.easydesk.supervisor.api.model.Ticket.Status
 import org.jetbrains.exposed.v1.core.dao.id.LongIdTable
@@ -21,10 +22,10 @@ internal object TicketsTable : LongIdTable("tickets") {
     val createdAt = timestamp("created_at")
     val mergedAt = timestamp("merged_at").nullable()
     val mergedIntoTicketId = long("merged_into_ticket_id").nullable()
-    val priority = enumerationByName<Priority>("priority", 16)
+    val priority = pgEnum<Priority>("priority", "ticket_priority")
     val readUpToMessageId = long("read_up_to_message_id").nullable()
     val resolvedAt = timestamp("resolved_at").nullable()
-    val status = enumerationByName<Status>("status", 16)
+    val status = pgEnum<Status>("status", "ticket_status")
     val updatedAt = timestamp("updated_at")
 
 }

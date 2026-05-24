@@ -16,8 +16,7 @@ dependencies {
     api(libs.kotlinx.serialization.json)
     api(libs.ktor.server.core)
     implementation(libs.logback.classic)
+    implementation(libs.postgresql)
     api(libs.slf4j.api)
     implementation(libs.yamlkt)
-
-    runtimeOnly(libs.postgresql)
 }

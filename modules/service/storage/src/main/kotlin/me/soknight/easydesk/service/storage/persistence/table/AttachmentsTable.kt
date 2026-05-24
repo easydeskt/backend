@@ -2,6 +2,7 @@ package me.soknight.easydesk.service.storage.persistence.table
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import me.soknight.easydesk.core.persistence.pgEnum
 import me.soknight.easydesk.service.storage.data.domain.Attachment
 import org.jetbrains.exposed.v1.core.dao.id.LongIdTable
 import org.jetbrains.exposed.v1.datetime.timestamp
@@ -14,8 +15,7 @@ internal object AttachmentsTable : LongIdTable("attachments") {
     val createdAt   = timestamp("created_at")
     val fileName    = varchar("file_name", 512)
     val fileSize    = long("file_size").nullable()
-    // DDL uses a native PG enum (see migration); Exposed reads it via varchar-by-name, which is compatible
-    val kind        = enumerationByName<Attachment.Kind>("kind", 16)
+    val kind        = pgEnum<Attachment.Kind>("kind", "attachment_kind")
     val messageId   = long("message_id")
     val storagePath = varchar("storage_path", 1024)
 
