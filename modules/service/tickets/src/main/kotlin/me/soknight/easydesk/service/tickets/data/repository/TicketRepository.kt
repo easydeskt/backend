@@ -26,12 +26,26 @@ interface TicketRepository {
     suspend fun assign(id: Long, agentId: Uuid?): Ticket?
 
     /**
+     * Returns the average time in minutes from ticket creation to the first message where
+     * `sender_kind = AGENT`, computed only over tickets that have at least one such message.
+     * Returns `null` when no qualifying tickets exist.
+     */
+    suspend fun avgFirstResponseTimeMinutes(): Double?
+
+    /**
      * Transitions the ticket to [SupervisorTicket.Status.CLOSED].
      * Returns the updated [Ticket], or `null` if no ticket with [id] exists.
      *
      * @param id id of the ticket to close
      */
     suspend fun close(id: Long): Ticket?
+
+    /**
+     * Returns the total count of tickets whose status is any of [statuses].
+     *
+     * @param statuses one or more statuses to match; passing none returns 0
+     */
+    suspend fun countByStatuses(vararg statuses: SupervisorTicket.Status): Long
 
     /**
      * Creates and persists a new ticket in [SupervisorTicket.Status.OPEN] state.
