@@ -31,7 +31,7 @@ class WorkspaceRoutes(
                     name = workspaceService.workspaceName,
                     superadminId = workspaceService.getSuperadminId(),
                     startedAt = workspaceService.startedAt,
-                    versions = workspaceService.workspaceVersions,
+                    version = workspaceService.version,
                 ))
             }.describe {
                 summary = "Get workspace info"

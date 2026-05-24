@@ -15,7 +15,6 @@ import kotlinx.coroutines.sync.withLock
 import me.soknight.easydesk.api.config.WorkspaceConfig
 import me.soknight.easydesk.api.response.TicketsCounters
 import me.soknight.easydesk.api.response.WorkspaceMetrics
-import me.soknight.easydesk.api.response.WorkspaceVersions
 import me.soknight.easydesk.service.agents.repository.AgentRepository
 import me.soknight.easydesk.service.tickets.data.repository.TicketRepository
 import me.soknight.easydesk.supervisor.api.model.Ticket.Status
@@ -37,10 +36,7 @@ class WorkspaceService(
 
     val startedAt: Long get() = processStartedAt.toEpochMilliseconds()
     val workspaceName: String get() = config.name
-    val workspaceVersions: WorkspaceVersions = WorkspaceVersions(
-        backend = WorkspaceService::class.java.`package`?.implementationVersion ?: "unknown",
-        miniApp = null,
-    )
+    val version: String = WorkspaceService::class.java.`package`?.implementationVersion ?: "unknown"
 
     suspend fun getMetrics(): WorkspaceMetrics = metricsMutex.withLock {
         val now = Clock.System.now()

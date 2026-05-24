@@ -26,11 +26,5 @@ data class WorkspaceResponse(
     val name: String,
     @SerialName("started_at") val startedAt: Long,
     @SerialName("superadmin_id") val superadminId: Uuid?,
-    val versions: WorkspaceVersions,
-)
-
-@Serializable
-data class WorkspaceVersions(
-    val backend: String,
-    val miniApp: String?,
+    val version: String,
 )
