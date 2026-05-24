@@ -24,9 +24,5 @@ easydesk:
       groupId: "$TELEGRAM_SUPERVISOR_GROUP_ID"
       superadminId: "$TELEGRAM_SUPERVISOR_SUPERADMIN_ID"
 
-  versions:
-    backend: "$BACKEND_VERSION:unknown"
-    miniApp: "$MINI_APP_VERSION:unknown"
-
   workspace:
     name: "$WORKSPACE_NAME:EasyDesk"

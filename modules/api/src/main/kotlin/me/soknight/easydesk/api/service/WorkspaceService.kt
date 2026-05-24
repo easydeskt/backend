@@ -39,7 +39,7 @@ class WorkspaceService(
     val workspaceName: String get() = config.name
     val workspaceVersions: WorkspaceVersions = WorkspaceVersions(
         backend = config.backendVersion,
-        miniApp = config.miniAppVersion,
+        miniApp = null,
     )
 
     suspend fun getMetrics(): WorkspaceMetrics = metricsMutex.withLock {

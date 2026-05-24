@@ -32,5 +32,5 @@ data class WorkspaceResponse(
 @Serializable
 data class WorkspaceVersions(
     val backend: String,
-    @SerialName("mini-app") val miniApp: String,
+    val miniApp: String?,
 )

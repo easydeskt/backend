@@ -28,6 +28,12 @@ dependencies {
     testImplementation(libs.mockk)
 }
 
+tasks.jar {
+    manifest {
+        attributes("Implementation-Version" to project.version.toString())
+    }
+}
+
 ktor {
     openApi {
         codeInferenceEnabled = true
