@@ -8,11 +8,16 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
+data class TicketsCounters(
+    @SerialName("in_progress") val inProgress: Long,
+    val open: Long,
+    val resolved: Long,
+)
+
+@Serializable
 data class WorkspaceMetrics(
     @SerialName("avg_response_time") val avgResponseTime: Double,
-    @SerialName("open_tickets") val openTickets: Long,
-    @SerialName("tickets_in_progress") val ticketsInProgress: Long,
-    @SerialName("tickets_resolved") val ticketsResolved: Long,
+    @SerialName("tickets_counters") val ticketsCounters: TicketsCounters,
 )
 
 @Serializable

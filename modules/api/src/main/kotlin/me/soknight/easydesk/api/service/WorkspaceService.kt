@@ -12,6 +12,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import me.soknight.easydesk.api.config.WorkspaceConfig
+import me.soknight.easydesk.api.response.TicketsCounters
 import me.soknight.easydesk.api.response.WorkspaceMetrics
 import me.soknight.easydesk.service.agents.repository.AgentRepository
 import me.soknight.easydesk.service.tickets.data.repository.TicketRepository
@@ -42,15 +43,17 @@ class WorkspaceService(
     suspend fun getSuperadminId(): Uuid? = agentRepository.findSuperadmin()?.identifier
 
     private suspend fun fetchMetrics(): WorkspaceMetrics = coroutineScope {
-        val openDeferred = async { ticketRepository.countByStatuses(Status.OPEN, Status.IN_PROGRESS) }
+        val openDeferred = async { ticketRepository.countByStatuses(Status.OPEN) }
         val inProgressDeferred = async { ticketRepository.countByStatuses(Status.IN_PROGRESS) }
         val resolvedDeferred = async { ticketRepository.countByStatuses(Status.RESOLVED) }
         val avgResponseDeferred = async { ticketRepository.avgFirstResponseTimeMinutes() }
         WorkspaceMetrics(
             avgResponseTime = avgResponseDeferred.await() ?: 0.0,
-            openTickets = openDeferred.await(),
-            ticketsInProgress = inProgressDeferred.await(),
-            ticketsResolved = resolvedDeferred.await(),
+            ticketsCounters = TicketsCounters(
+                inProgress = inProgressDeferred.await(),
+                open = openDeferred.await(),
+                resolved = resolvedDeferred.await(),
+            ),
         )
     }
 
