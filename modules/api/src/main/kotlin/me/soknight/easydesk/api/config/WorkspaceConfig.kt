@@ -9,7 +9,6 @@ class WorkspaceConfig(@Provided config: ApplicationConfig) {
 
     private val workspace = config.config("easydesk.workspace")
 
-    val backendVersion: String = WorkspaceConfig::class.java.`package`?.implementationVersion ?: "unknown"
     val name: String = workspace.property("name").getString()
 
 }

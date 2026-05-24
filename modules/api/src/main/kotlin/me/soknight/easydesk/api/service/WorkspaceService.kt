@@ -38,7 +38,7 @@ class WorkspaceService(
     val startedAt: Long get() = processStartedAt.toEpochMilliseconds()
     val workspaceName: String get() = config.name
     val workspaceVersions: WorkspaceVersions = WorkspaceVersions(
-        backend = config.backendVersion,
+        backend = WorkspaceService::class.java.`package`?.implementationVersion ?: "unknown",
         miniApp = null,
     )
 
