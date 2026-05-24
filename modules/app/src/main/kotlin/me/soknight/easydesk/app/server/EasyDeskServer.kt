@@ -52,6 +52,7 @@ fun Application.module() {
     configureDatabase()
     configureKoin()
     configureStatusPages()
+    fixSuperadminBootstrap()
 
     val koin = getKoin()
     val eventBus = koin.get<EventBus>()
@@ -125,6 +126,7 @@ fun Application.module() {
                 tag("Channels")
                 tag("Agents")
                 tag("Identities")
+                tag("Workspace")
             }
 
             swaggerUI(path = "docs/swagger") {
