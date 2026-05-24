@@ -39,6 +39,22 @@ internal class DefaultTicketRepository : TicketRepository {
             entity
         }?.toDomain()
 
+    override suspend fun avgFirstResponseTimeMinutes(): Double? =
+        suspendTransaction {
+            exec("""
+                SELECT AVG(EXTRACT(EPOCH FROM (m.first_at - t.created_at)) / 60.0)
+                FROM tickets t
+                JOIN (
+                    SELECT ticket_id, MIN(platform_timestamp) AS first_at
+                    FROM ticket_messages
+                    WHERE sender_kind = 'AGENT' -- enumerationByName stores enum name, not ActorKind.key
+                    GROUP BY ticket_id
+                ) m ON m.ticket_id = t.id
+            """.trimIndent()) { rs ->
+                if (rs.next()) rs.getDouble(1).takeIf { !rs.wasNull() } else null
+            }
+        }
+
     override suspend fun close(id: Long): Ticket? =
         suspendTransaction {
             val entity = TicketEntity.findById(id) ?: return@suspendTransaction null
@@ -48,6 +64,16 @@ internal class DefaultTicketRepository : TicketRepository {
             entity.updatedAt = now
             entity
         }?.toDomain()
+
+    override suspend fun countByStatuses(vararg statuses: Status): Long {
+        if (statuses.isEmpty()) return 0L
+        return suspendTransaction {
+            TicketsTable
+                .selectAll()
+                .where { TicketsTable.status inList statuses.toList() }
+                .count()
+        }
+    }
 
     override suspend fun create(conversationId: Long, priority: Priority): Ticket =
         suspendTransaction {
