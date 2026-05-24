@@ -24,8 +24,8 @@ data class WorkspaceMetrics(
 data class WorkspaceResponse(
     val metrics: WorkspaceMetrics,
     val name: String,
+    @SerialName("started_at") val startedAt: Long,
     @SerialName("superadmin_id") val superadminId: Uuid?,
-    val uptime: Long,
     val versions: WorkspaceVersions,
 )
 

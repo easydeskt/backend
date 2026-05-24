@@ -35,7 +35,7 @@ class WorkspaceService(
         .map { it.toKotlinInstant() }
         .orElseGet { Clock.System.now() }
 
-    val uptimeMinutes: Long get() = (Clock.System.now() - processStartedAt).inWholeMinutes
+    val startedAt: Long get() = processStartedAt.toEpochMilliseconds()
     val workspaceName: String get() = config.name
     val workspaceVersions: WorkspaceVersions = WorkspaceVersions(
         backend = config.backendVersion,
