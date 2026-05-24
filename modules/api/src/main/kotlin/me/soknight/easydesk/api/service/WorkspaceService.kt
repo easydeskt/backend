@@ -36,7 +36,11 @@ class WorkspaceService(
 
     val startedAt: Long get() = processStartedAt.toEpochMilliseconds()
     val workspaceName: String get() = config.name
-    val version: String = WorkspaceService::class.java.`package`?.implementationVersion ?: "unknown"
+    val version: String = WorkspaceService::class.java
+        .getResourceAsStream("/version.properties")
+        ?.use { java.util.Properties().apply { load(it) }.getProperty("version") }
+        ?: WorkspaceService::class.java.`package`?.implementationVersion
+        ?: "unknown"
 
     suspend fun getMetrics(): WorkspaceMetrics = metricsMutex.withLock {
         val now = Clock.System.now()

@@ -28,6 +28,10 @@ dependencies {
     testImplementation(libs.mockk)
 }
 
+tasks.processResources {
+    expand("version" to project.version)
+}
+
 tasks.jar {
     manifest {
         attributes("Implementation-Version" to project.version.toString())
