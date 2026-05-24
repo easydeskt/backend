@@ -47,6 +47,12 @@ interface AgentRepository {
     suspend fun findAllBindingAttributes(brand: SupervisorBrand): Map<Uuid, JsonObject>
 
     /**
+     * Returns all agents whose [addedByAgentId] is `null`, regardless of active state.
+     * Intended only for startup integrity checks — for normal use prefer [findSuperadmin].
+     */
+    suspend fun findAllWithNullAddedBy(): List<Agent>
+
+    /**
      * Returns binding attributes for the given agent on the given supervisor platform,
      * or `null` if no binding exists.
      *
@@ -67,6 +73,21 @@ interface AgentRepository {
      * @param nativeId platform-specific user id (e.g. Telegram `user_id` as string)
      */
     suspend fun findBySupervisorBinding(brand: SupervisorBrand, nativeId: String): Agent?
+
+    /**
+     * Returns the single bootstrap-admin agent — the one whose [addedByAgentId] is `null`.
+     * Returns `null` when there are zero or two-or-more such agents (data anomaly).
+     */
+    suspend fun findSuperadmin(): Agent?
+
+    /**
+     * Batch-fixes bootstrap integrity: sets [addedByAgentId] to [superadminId] on all agents
+     * whose ids are in [agentIdsToFix]. No-op if the list is empty.
+     *
+     * @param superadminId id of the real bootstrap admin
+     * @param agentIdsToFix ids of agents whose [addedByAgentId] is erroneously `null`
+     */
+    suspend fun fixBootstrap(superadminId: Uuid, agentIdsToFix: List<Uuid>)
 
     /**
      * Binds an agent to a supervisor platform identity.
