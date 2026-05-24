@@ -13,10 +13,12 @@ class PgEnumColumnType<T : Enum<T>>(
 
     override fun sqlType() = typeName
 
-    override fun valueFromDB(value: Any): T = when (value) {
-        is PGobject -> java.lang.Enum.valueOf(klass.java, value.value!!)
-        is String   -> java.lang.Enum.valueOf(klass.java, value)
-        else        -> error("Unexpected value: $value (${value::class})")
+    @Suppress("UNCHECKED_CAST")
+    override fun valueFromDB(value: Any): T = when {
+        klass.isInstance(value) -> value as T
+        value is PGobject       -> java.lang.Enum.valueOf(klass.java, value.value!!)
+        value is String         -> java.lang.Enum.valueOf(klass.java, value)
+        else                    -> error("Unexpected value: $value (${value::class})")
     }
 
     override fun notNullValueToDB(value: T) =
