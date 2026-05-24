@@ -1,6 +1,9 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package me.soknight.easydesk.app.server.plugin
 
 import io.ktor.server.application.*
+import kotlin.uuid.ExperimentalUuidApi
 import kotlinx.coroutines.runBlocking
 import me.soknight.easydesk.core.logging.getLogger
 import me.soknight.easydesk.service.agents.repository.AgentRepository

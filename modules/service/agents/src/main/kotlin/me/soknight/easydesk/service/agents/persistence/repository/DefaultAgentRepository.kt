@@ -6,6 +6,7 @@ import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlinx.serialization.json.JsonObject
+import me.soknight.easydesk.core.logging.getLogger
 import me.soknight.easydesk.core.persistence.suspendTransaction
 import me.soknight.easydesk.service.agents.domain.Agent
 import me.soknight.easydesk.service.agents.persistence.entity.AgentEntity
@@ -24,6 +25,8 @@ import org.koin.core.annotation.Single
 
 @Single
 internal class DefaultAgentRepository : AgentRepository {
+
+    private val logger = getLogger()
 
     override suspend fun create(displayName: String, role: Role, addedByAgentId: Uuid?): Agent =
         suspendTransaction {
@@ -88,10 +91,19 @@ internal class DefaultAgentRepository : AgentRepository {
             AgentEntity.findById(agentId)
         }?.toDomain()
 
-    override suspend fun findSuperadmin(): Agent? =
-        suspendTransaction {
-            AgentEntity.find { AgentsTable.addedByAgentId.isNull() }.singleOrNull()
-        }?.toDomain()
+    override suspend fun findSuperadmin(): Agent? {
+        val candidates = suspendTransaction {
+            AgentEntity.find { AgentsTable.addedByAgentId.isNull() }.map(AgentEntity::toDomain)
+        }
+        if (candidates.size > 1) {
+            logger.warn(
+                "findSuperadmin: {} agents have null addedByAgentId, expected exactly one — returning null",
+                candidates.size,
+            )
+            return null
+        }
+        return candidates.singleOrNull()
+    }
 
     override suspend fun fixBootstrap(superadminId: Uuid, agentIdsToFix: List<Uuid>) {
         if (agentIdsToFix.isEmpty()) return
