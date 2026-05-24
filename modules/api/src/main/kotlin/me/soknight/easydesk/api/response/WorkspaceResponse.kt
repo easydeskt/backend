@@ -9,7 +9,9 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class TicketsCounters(
+    val closed: Long,
     @SerialName("in_progress") val inProgress: Long,
+    val merged: Long,
     val open: Long,
     val resolved: Long,
 )

@@ -49,14 +49,18 @@ class WorkspaceService(
     suspend fun getSuperadminId(): Uuid? = agentRepository.findSuperadmin()?.identifier
 
     private suspend fun fetchMetrics(): WorkspaceMetrics = coroutineScope {
-        val openDeferred = async { ticketRepository.countByStatuses(Status.OPEN) }
+        val closedDeferred = async { ticketRepository.countByStatuses(Status.CLOSED) }
         val inProgressDeferred = async { ticketRepository.countByStatuses(Status.IN_PROGRESS) }
+        val mergedDeferred = async { ticketRepository.countByStatuses(Status.MERGED) }
+        val openDeferred = async { ticketRepository.countByStatuses(Status.OPEN) }
         val resolvedDeferred = async { ticketRepository.countByStatuses(Status.RESOLVED) }
         val avgResponseDeferred = async { ticketRepository.avgFirstResponseTimeMinutes() }
         WorkspaceMetrics(
             avgResponseTime = avgResponseDeferred.await() ?: 0.0,
             ticketsCounters = TicketsCounters(
+                closed = closedDeferred.await(),
                 inProgress = inProgressDeferred.await(),
+                merged = mergedDeferred.await(),
                 open = openDeferred.await(),
                 resolved = resolvedDeferred.await(),
             ),
