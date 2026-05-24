@@ -16,6 +16,7 @@ import me.soknight.easydesk.supervisor.api.SupervisorBrand
 import me.soknight.easydesk.supervisor.api.model.Agent.Role
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.isNull
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
@@ -55,6 +56,12 @@ internal class DefaultAgentRepository : AgentRepository {
             }.map(AgentEntity::toDomain)
         }
 
+    override suspend fun findAllWithNullAddedBy(): List<Agent> =
+        suspendTransaction {
+            AgentEntity.find { AgentsTable.addedByAgentId.isNull() }
+                .map(AgentEntity::toDomain)
+        }
+
     override suspend fun findBindingAttributes(agentId: Uuid, brand: SupervisorBrand): JsonObject? =
         suspendTransaction {
             with(AgentSupervisorBindingsTable) {
@@ -80,6 +87,20 @@ internal class DefaultAgentRepository : AgentRepository {
 
             AgentEntity.findById(agentId)
         }?.toDomain()
+
+    override suspend fun findSuperadmin(): Agent? =
+        suspendTransaction {
+            AgentEntity.find { AgentsTable.addedByAgentId.isNull() }.singleOrNull()
+        }?.toDomain()
+
+    override suspend fun fixBootstrap(superadminId: Uuid, agentIdsToFix: List<Uuid>) {
+        if (agentIdsToFix.isEmpty()) return
+        suspendTransaction {
+            for (id in agentIdsToFix) {
+                AgentEntity.findById(id)?.let { it.addedByAgentId = superadminId }
+            }
+        }
+    }
 
     override suspend fun linkSupervisor(agentId: Uuid, brand: SupervisorBrand, nativeId: String) {
         suspendTransaction {
