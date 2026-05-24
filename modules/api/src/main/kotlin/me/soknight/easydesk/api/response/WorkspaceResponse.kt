@@ -25,4 +25,12 @@ data class WorkspaceResponse(
     val metrics: WorkspaceMetrics,
     val name: String,
     @SerialName("superadmin_id") val superadminId: Uuid?,
+    val uptime: Long,
+    val versions: WorkspaceVersions,
+)
+
+@Serializable
+data class WorkspaceVersions(
+    val backend: String,
+    @SerialName("mini-app") val miniApp: String,
 )

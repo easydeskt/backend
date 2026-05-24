@@ -7,6 +7,11 @@ import org.koin.core.annotation.Single
 @Single
 class WorkspaceConfig(@Provided config: ApplicationConfig) {
 
-    val name: String = config.config("easydesk.workspace").property("name").getString()
+    private val workspace = config.config("easydesk.workspace")
+    private val versionsConfig = workspace.config("versions")
+
+    val backendVersion: String = versionsConfig.property("backend").getString()
+    val miniAppVersion: String = versionsConfig.property("mini-app").getString()
+    val name: String = workspace.property("name").getString()
 
 }

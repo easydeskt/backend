@@ -26,3 +26,6 @@ easydesk:
 
   workspace:
     name: "$WORKSPACE_NAME:EasyDesk"
+    versions:
+      backend: "$BACKEND_VERSION:unknown"
+      mini-app: "$MINI_APP_VERSION:unknown"

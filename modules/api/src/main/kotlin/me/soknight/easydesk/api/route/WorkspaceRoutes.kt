@@ -30,6 +30,8 @@ class WorkspaceRoutes(
                     metrics = workspaceService.getMetrics(),
                     name = workspaceService.workspaceName,
                     superadminId = workspaceService.getSuperadminId(),
+                    uptime = workspaceService.uptimeMinutes,
+                    versions = workspaceService.workspaceVersions,
                 ))
             }.describe {
                 summary = "Get workspace info"
