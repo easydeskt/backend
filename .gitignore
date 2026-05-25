@@ -2,6 +2,7 @@
 .gradle/
 .kotlin/
 build/
+data/
 *.jar
 *.iml
 *.log
