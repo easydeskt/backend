@@ -44,6 +44,7 @@ class ApiAuthenticator(
             ?.takeIf { it.startsWith("tma ") }
             ?.removePrefix("tma ")
             ?.takeIf { it.isNotBlank() }
+            ?: call.request.queryParameters["tma_auth"]?.takeIf { it.isNotBlank() }
             ?: return null
         return if (apiConfig.devAuthSkip) authenticateDev(rawInitData) else authenticateNormal(rawInitData)
     }

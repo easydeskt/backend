@@ -37,13 +37,16 @@ class ApiAuthenticatorTest {
 
     private fun makeAuthenticator() = ApiAuthenticator(agentRepository, apiConfig, supervisorConfig)
 
-    private fun mockCall(authHeader: String?): ApplicationCall {
+    private fun mockCall(authHeader: String?, tmaAuthParam: String? = null): ApplicationCall {
         val call = mockk<ApplicationCall>()
         val request = mockk<ApplicationRequest>()
         val headers = mockk<Headers>()
+        val queryParameters = mockk<Parameters>()
         every { call.request } returns request
         every { request.headers } returns headers
+        every { request.queryParameters } returns queryParameters
         every { headers["Authorization"] } returns authHeader
+        every { queryParameters["tma_auth"] } returns tmaAuthParam
         return call
     }
 
@@ -93,6 +96,25 @@ class ApiAuthenticatorTest {
     @Test
     fun `authenticate returns null when Authorization header is blank after tma prefix`() = runTest {
         val result = makeAuthenticator().authenticate(mockCall("tma "))
+        assertNull(result)
+    }
+
+    @Test
+    fun `authenticate falls back to tma_auth query param when Authorization header is absent`() = runTest {
+        coEvery { agentRepository.findBySupervisorBinding(any(), eq(telegramUserId.toString())) } returns TestFixtures.operatorAgent
+        coEvery { agentRepository.patchBindingAttributes(TestFixtures.operatorId, TelegramSupervisorBrand, any()) } just Runs
+
+        val initData = buildValidInitData(validParams(userId = telegramUserId, username = "test_user"))
+        val result = makeAuthenticator().authenticate(mockCall(null, initData))
+
+        assertNotNull(result)
+        assertEquals(TestFixtures.operatorAgent, result.agent)
+        assertEquals("test_user", result.telegramUsername)
+    }
+
+    @Test
+    fun `authenticate returns null when both Authorization header and tma_auth query param are absent`() = runTest {
+        val result = makeAuthenticator().authenticate(mockCall(null))
         assertNull(result)
     }
 
