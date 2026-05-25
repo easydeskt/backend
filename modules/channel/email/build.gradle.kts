@@ -8,4 +8,7 @@ dependencies {
     api(projects.modules.channel.api)
     implementation(libs.angus.mail)
     implementation(projects.modules.service.channels)
+
+    testImplementation(libs.logback.classic)
+    testImplementation(libs.mockk)
 }

@@ -16,6 +16,12 @@ import me.soknight.easydesk.channel.email.EmailIdentity
 import me.soknight.easydesk.channel.email.domain.EmailAttachment
 import me.soknight.easydesk.channel.email.domain.EmailConversation
 import me.soknight.easydesk.channel.email.domain.EmailMessage
+import me.soknight.easydesk.core.logging.getLogger
+import me.soknight.easydesk.core.logging.warn
+
+private const val MAX_ATTACHMENT_BYTES = 50L * 1024L * 1024L   // 50 MB
+
+private val logger = getLogger(MimeMessageMapper::class.java)
 
 internal class MimeMessageMapper(private val channel: EmailChannel) {
 
@@ -92,6 +98,11 @@ internal class MimeMessageMapper(private val channel: EmailChannel) {
                 for (i in 0 until multipart.count) walkPart(multipart.getBodyPart(i), attachments, onPlainText)
             }
             part is BodyPart && isAttachment(part) -> {
+                val partSize = part.size.takeIf { it >= 0 }?.toLong()
+                if (partSize != null && partSize > MAX_ATTACHMENT_BYTES) {
+                    logger.warn { "Skipping attachment '${part.fileName}': $partSize bytes exceeds limit" }
+                    return
+                }
                 val rawType = part.contentType.substringBefore(";").trim()
                 attachments.add(
                     EmailAttachment(
