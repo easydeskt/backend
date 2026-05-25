@@ -3,6 +3,7 @@ package me.soknight.easydesk.channel.telegram
 import dev.inmo.tgbotapi.bot.TelegramBot
 import dev.inmo.tgbotapi.requests.abstracts.Request
 import dev.inmo.tgbotapi.requests.send.SendTextMessage
+import dev.inmo.tgbotapi.requests.send.media.SendMediaGroupData
 import dev.inmo.tgbotapi.requests.send.media.SendPhotoData
 import dev.inmo.tgbotapi.requests.send.media.SendStickerByFileId
 import dev.inmo.tgbotapi.types.ChatIdentifier
@@ -104,6 +105,26 @@ class TelegramConversationSendTest {
 
         coVerify(exactly = 0) { bot.execute(any()) }
         assertEquals("0", result.nativeId)
+    }
+
+    @Test
+    fun `two photo attachments use sendMediaGroup and return first chunk message id`() = runTest {
+        val photoMessage = makeMessage(
+            text = "caption text",
+            attachments = listOf(
+                makePhotoAttachment("file_id_1"),
+                makePhotoAttachment("file_id_2"),
+            ),
+        )
+        val requestSlot = slot<Request<*>>()
+        coEvery { bot.execute(capture(requestSlot)) } returns mockk(relaxed = true) {
+            coEvery { messageId } returns sentMessageId
+        }
+
+        val result = conversation.send(photoMessage)
+
+        assertIs<SendMediaGroupData>(requestSlot.captured)
+        assertEquals("42", result.nativeId)
     }
 
     // -------------- HELPERS ------------------------------------------------------------------------------------------

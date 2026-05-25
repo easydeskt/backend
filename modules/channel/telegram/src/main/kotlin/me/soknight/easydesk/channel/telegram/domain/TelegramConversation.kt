@@ -20,6 +20,8 @@ import dev.inmo.tgbotapi.types.media.TelegramMediaDocument
 import dev.inmo.tgbotapi.types.media.TelegramMediaPhoto
 import dev.inmo.tgbotapi.types.media.TelegramMediaVideo
 import dev.inmo.tgbotapi.utils.RiskFeature
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.io.readByteArray
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
@@ -63,34 +65,37 @@ class TelegramConversation(
             return makeTelegramMessage(sent.messageId, message)
         }
 
-        val sticker = attachments.singleOrNull { it.kind == Attachment.Kind.STICKER }
-        if (sticker != null) {
-            val fileId = sticker.attributes["telegram.file_id"]?.let { (it as? JsonPrimitive)?.contentOrNull }
+        val singleSticker = attachments.singleOrNull { it.kind == Attachment.Kind.STICKER }
+        val mediaAttachments = attachments.filter { it.kind != Attachment.Kind.STICKER }
+
+        if (singleSticker != null) {
+            val fileId = singleSticker.attributes["telegram.file_id"]?.let { (it as? JsonPrimitive)?.contentOrNull }
             if (fileId != null) {
                 val sent = bot.sendSticker(
                     chatId = userChatId,
                     sticker = FileId(fileId),
                     replyParameters = replyParams,
                 )
-                return makeTelegramMessage(sent.messageId, message)
+                if (mediaAttachments.isEmpty()) return makeTelegramMessage(sent.messageId, message)
+            } else {
+                logger.warn { "Sticker has no telegram.file_id — skipping send" }
+                if (mediaAttachments.isEmpty()) return makeTelegramMessage(MessageId(0L), message)
             }
-            logger.warn { "Sticker has no telegram.file_id — skipping send" }
-            return makeTelegramMessage(MessageId(0L), message)
+            // fall through to send media attachments too
         }
-
-        val mediaAttachments = attachments.filter { it.kind != Attachment.Kind.STICKER }
 
         if (mediaAttachments.size == 1) {
             return sendSingle(mediaAttachments.single(), text, replyParams, message)
         }
 
         val groups = mediaAttachments.chunked(10)
-        var lastSent: Message = makeTelegramMessage(MessageId(0L), message)
+        var firstSent: Message? = null
         for ((index, group) in groups.withIndex()) {
             val caption = if (index == 0) text else null
-            lastSent = sendMediaGroupChunk(group, caption, replyParams, message)
+            val sent = sendMediaGroupChunk(group, caption, replyParams, message)
+            if (firstSent == null) firstSent = sent
         }
-        return lastSent
+        return firstSent ?: makeTelegramMessage(MessageId(0L), message)
     }
 
     override suspend fun send(replyToNativeId: String?, block: MessageBuilder.() -> Unit): Message {
@@ -127,12 +132,13 @@ class TelegramConversation(
         }
     }
 
-    private fun attachmentInputFile(attachment: Attachment): InputFile {
+    private suspend fun attachmentInputFile(attachment: Attachment): InputFile {
         val fileId = attachment.attributes["telegram.file_id"]?.let { (it as? JsonPrimitive)?.contentOrNull }
         return if (fileId != null) {
             FileId(fileId)
         } else {
-            attachment.contentSource.readByteArray().asMultipartFile(attachment.fileName)
+            val bytes = withContext(Dispatchers.IO) { attachment.contentSource.readByteArray() }
+            bytes.asMultipartFile(attachment.fileName)
         }
     }
 
