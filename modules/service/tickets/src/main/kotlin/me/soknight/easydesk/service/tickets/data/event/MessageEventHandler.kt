@@ -3,6 +3,7 @@
 package me.soknight.easydesk.service.tickets.data.event
 
 import kotlin.uuid.ExperimentalUuidApi
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.launch
@@ -62,6 +63,7 @@ class MessageEventHandler(
                     try {
                         handle(event)
                     } catch (e: Exception) {
+                        if (e is CancellationException) throw e
                         logger.error(
                             "Failed to handle MessageEvent.Received (nativeId={}), event dropped",
                             event.message.nativeId, e,
@@ -131,6 +133,7 @@ class MessageEventHandler(
                 attributes   = JsonObject(attachment.attributes),
             )
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             logger.error("Failed to persist attachment metadata '${attachment.fileName}' for message $messageId", e)
         }
     }

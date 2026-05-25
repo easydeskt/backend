@@ -12,6 +12,7 @@ import jakarta.mail.internet.MimeMessage
 import jakarta.mail.internet.MimeMultipart
 import jakarta.mail.util.ByteArrayDataSource
 import java.util.Properties
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.io.readByteArray
@@ -114,7 +115,10 @@ class EmailConversation(
                         fileName = att.fileName
                         disposition = Part.ATTACHMENT
                     })
-                }.onFailure { logger.warn(it) { "Failed to attach '${att.fileName}' — skipping" } }
+                }.onFailure {
+                    if (it is CancellationException) throw it
+                    logger.warn(it) { "Failed to attach '${att.fileName}' — skipping" }
+                }
             }
         }
     }

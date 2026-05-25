@@ -209,9 +209,7 @@ class TelegramMessageRelayHandler(
         get() = (attributes["vk.player_url"] as? JsonPrimitive)?.contentOrNull
 
     private suspend fun downloadUrl(att: TicketMessageAttachment): ByteArray? {
-        // vk.url / email.url are not yet populated at receive time;
-        // VK and email attachments without telegram.file_id will be silently dropped
-        // until VkAttachmentMapper and MimeMessageMapper store download URLs in attributes
+        // TODO: vk.url and email.url are not populated by their respective mappers — cross-channel relay of VK/email attachments is silently dropped until those mappers are updated
         val url = (att.attributes["vk.url"] as? JsonPrimitive)?.contentOrNull
             ?: (att.attributes["email.url"] as? JsonPrimitive)?.contentOrNull
             ?: return null

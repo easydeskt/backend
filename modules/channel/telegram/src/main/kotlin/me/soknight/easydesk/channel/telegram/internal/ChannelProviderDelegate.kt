@@ -9,6 +9,7 @@ import dev.inmo.tgbotapi.types.message.abstracts.ContentMessage
 import dev.inmo.tgbotapi.types.message.abstracts.OptionallyFromUserMessage
 import dev.inmo.tgbotapi.types.message.content.TextContent
 import dev.inmo.tgbotapi.types.toChatId
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.serialization.json.Json
@@ -119,6 +120,7 @@ internal class ChannelProviderDelegate(
                         )
                     )
                 } catch (e: Exception) {
+                    if (e is CancellationException) throw e
                     logger.warn(e) { "Failed to handle incoming Telegram message: ${e.message}" }
                 }
             }

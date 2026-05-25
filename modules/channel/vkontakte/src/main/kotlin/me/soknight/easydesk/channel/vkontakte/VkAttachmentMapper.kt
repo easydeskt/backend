@@ -5,6 +5,7 @@ import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.http.ContentType
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.CancellationException
 import kotlinx.io.Buffer
 import kotlinx.io.Source
 import kotlinx.serialization.json.JsonPrimitive
@@ -54,7 +55,9 @@ object VkAttachmentMapper {
     // ── private helpers ───────────────────────────────────────────────────────
 
     private suspend fun download(httpClient: HttpClient, url: String): ByteArray? =
-        runCatching { httpClient.get(url).body<ByteArray>() }.getOrNull()
+        runCatching { httpClient.get(url).body<ByteArray>() }
+            .onFailure { if (it is CancellationException) throw it }
+            .getOrNull()
 
     private suspend fun mapAudioMessage(
         vkAttachment: VkAttachment.AudioMessage,

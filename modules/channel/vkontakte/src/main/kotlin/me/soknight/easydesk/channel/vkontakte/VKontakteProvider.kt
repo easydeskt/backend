@@ -6,6 +6,7 @@ import io.ktor.client.plugins.HttpTimeout
 import io.ktor.server.application.Application
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Instant
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.serialization.json.Json
@@ -124,6 +125,7 @@ object VKontakteProvider : ChannelProvider, KoinComponent {
     override suspend fun stop() {
         logger.info { "Stopping ${lpJobs.size} VKontakte Long Poll job(s)" }
         lpJobs.values.forEach { it.cancel() }
+        activeBots.values.forEach { it.apiClient.close() }
         activeBots.clear()
         lpJobs.clear()
         activeChannels.clear()
@@ -163,6 +165,7 @@ object VKontakteProvider : ChannelProvider, KoinComponent {
                     )
                 )
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 logger.warn(e) { "Failed to handle VKontakte message: ${e.message}" }
             }
         }

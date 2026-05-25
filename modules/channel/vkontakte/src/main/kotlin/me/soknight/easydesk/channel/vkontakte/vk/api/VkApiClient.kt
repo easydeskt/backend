@@ -6,6 +6,8 @@ import me.soknight.easydesk.channel.vkontakte.vk.model.VkUser
 
 internal interface VkApiClient {
 
+    fun close()
+
     suspend fun deleteMessages(peerId: Long, conversationMessageIds: List<Int>)
 
     suspend fun editMessage(

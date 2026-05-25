@@ -35,6 +35,10 @@ internal class DefaultVkApiClient(
         }
     }
 
+    override fun close() {
+        httpClient.close()
+    }
+
     override suspend fun deleteMessages(peerId: Long, conversationMessageIds: List<Int>) {
         post<Int>("messages.delete", parameters {
             append("cmids", conversationMessageIds.joinToString(","))

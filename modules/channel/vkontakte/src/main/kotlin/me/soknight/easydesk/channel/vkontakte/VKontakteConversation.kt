@@ -1,5 +1,6 @@
 package me.soknight.easydesk.channel.vkontakte
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.io.readByteArray
@@ -12,6 +13,7 @@ import me.soknight.easydesk.channel.api.model.Message
 import me.soknight.easydesk.channel.vkontakte.vk.VkBot
 import me.soknight.easydesk.channel.vkontakte.vk.model.VkMessage
 import me.soknight.easydesk.core.logging.getLogger
+import me.soknight.easydesk.core.logging.warn
 
 class VKontakteConversation(
     override val attributes: Attributes = emptyMap(),
@@ -110,6 +112,9 @@ class VKontakteConversation(
                 }
             }
         }
-    }.onFailure { logger.warn(it) { "Failed to upload attachment '${attachment.fileName}' to VK" } }.getOrNull()
+    }.onFailure {
+        if (it is CancellationException) throw it
+        logger.warn(it) { "Failed to upload attachment '${attachment.fileName}' to VK" }
+    }.getOrNull()
 
 }
