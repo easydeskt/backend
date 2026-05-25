@@ -6,11 +6,11 @@ import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlinx.serialization.json.JsonObject
-import me.soknight.easydesk.channel.api.dsl.Attachments
 import me.soknight.easydesk.channel.api.model.Conversation
 import me.soknight.easydesk.service.channels.data.domain.ChannelIdentity
 import me.soknight.easydesk.service.tickets.data.domain.ActorKind
 import me.soknight.easydesk.service.tickets.data.domain.TicketMessage
+import me.soknight.easydesk.service.tickets.data.domain.TicketMessageAttachment
 import me.soknight.easydesk.service.tickets.persistence.table.TicketMessagesTable
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.dao.LongEntity
@@ -31,11 +31,11 @@ internal class TicketMessageEntity(id: EntityID<Long>) : LongEntity(id) {
 
     fun toDomain(
         conversation: Conversation,
-        attachments: Attachments,
+        messageAttachments: List<TicketMessageAttachment>,
         senderIdentity: ChannelIdentity?,
     ) = TicketMessage(
-        attachments = attachments,
         conversation = conversation,
+        messageAttachments = messageAttachments,
         createdAt = createdAt,
         identifier = id.value,
         inReplyToNativeId = inReplyToNativeId,

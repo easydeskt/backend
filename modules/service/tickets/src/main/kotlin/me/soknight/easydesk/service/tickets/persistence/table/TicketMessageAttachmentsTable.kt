@@ -10,13 +10,13 @@ import org.jetbrains.exposed.v1.json.jsonb
 
 internal object TicketMessageAttachmentsTable : LongIdTable("ticket_message_attachments") {
 
-    val attributes   = jsonb<JsonObject>("attributes", Json)
+    val attributes = jsonb<JsonObject>("attributes", Json)
     val channelBrand = varchar("channel_brand", 64)
-    val contentType  = varchar("content_type", 128)
-    val createdAt    = timestamp("created_at")
-    val fileName     = varchar("file_name", 512)
-    val fileSize     = long("file_size").nullable()
-    val kind         = pgEnum<Attachment.Kind>("kind", "attachment_kind")
-    val messageId    = long("message_id")
+    val contentType = varchar("content_type", 128)
+    val createdAt = timestamp("created_at")
+    val fileName = varchar("file_name", 512)
+    val fileSize = long("file_size").nullable()
+    val kind = pgEnum<Attachment.Kind>("kind", "attachment_kind")
+    val messageId = long("message_id")
 
 }

@@ -8,7 +8,6 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlinx.serialization.json.JsonObject
 import me.soknight.easydesk.channel.api.ChannelActor
-import me.soknight.easydesk.channel.api.dsl.Attachments
 import me.soknight.easydesk.channel.api.dsl.Attributes
 import me.soknight.easydesk.channel.api.dsl.MessageBuilder
 import me.soknight.easydesk.channel.api.model.Conversation
@@ -44,7 +43,7 @@ import me.soknight.easydesk.supervisor.api.model.TicketMessage as SupervisorTick
  * @param rawAttributes extensible platform-specific metadata stored as [JsonObject]
  * @param createdAt timestamp of local recording
  * @param conversation the live channel:api [Conversation] this message belongs to
- * @param attachments attachments associated with this message
+ * @param messageAttachments attachment metadata records associated with this message
  * @param senderIdentity resolved [ChannelIdentity] for [ActorKind.IDENTITY] senders, or `null`
  */
 class TicketMessage(
@@ -61,7 +60,7 @@ class TicketMessage(
     val createdAt: Instant = Clock.System.now(),
     // injected by repository at materialization time:
     override val conversation: Conversation,
-    override val attachments: Attachments,
+    val messageAttachments: List<TicketMessageAttachment>,
     private val senderIdentity: ChannelIdentity?,
 ) : SupervisorTicketMessage, Message {
 

@@ -13,10 +13,10 @@ import me.soknight.easydesk.service.channels.data.repository.ConversationReposit
 import me.soknight.easydesk.service.channels.registry.ChannelRegistry
 import me.soknight.easydesk.service.channels.registry.ConversationRegistry
 import me.soknight.easydesk.service.channels.registry.StaleConversation
-import me.soknight.easydesk.service.storage.data.repository.AttachmentRepository
 import me.soknight.easydesk.service.tickets.data.domain.ActorKind
 import me.soknight.easydesk.service.tickets.data.domain.TicketMessage
 import me.soknight.easydesk.service.tickets.data.domain.TicketMessageStats
+import me.soknight.easydesk.service.tickets.data.repository.TicketMessageAttachmentRepository
 import me.soknight.easydesk.service.tickets.data.repository.TicketMessageRepository
 import me.soknight.easydesk.service.tickets.data.repository.TicketRepository
 import me.soknight.easydesk.service.tickets.persistence.entity.TicketMessageEntity
@@ -29,11 +29,11 @@ import org.koin.core.annotation.Single
 
 @Single
 internal class DefaultTicketMessageRepository(
-    private val attachmentRepository: AttachmentRepository,
     private val channelIdentityRepository: ChannelIdentityRepository,
     private val channelRegistry: ChannelRegistry,
     private val conversationRegistry: ConversationRegistry,
     private val conversationRepository: ConversationRepository,
+    private val ticketMessageAttachmentRepository: TicketMessageAttachmentRepository,
     private val ticketRepository: TicketRepository,
 ) : TicketMessageRepository {
 
@@ -47,8 +47,8 @@ internal class DefaultTicketMessageRepository(
                     ?: error("no live Channel resolved for service channel id ${serviceConv.channelId}"),
             )
         val identity = senderIdentityId?.let { channelIdentityRepository.findById(it) }
-        val attachments = attachmentRepository.findByMessage(id.value, conv.channel)
-        return toDomain(conv, attachments, identity)
+        val messageAttachments = ticketMessageAttachmentRepository.findByMessage(id.value)
+        return toDomain(conv, messageAttachments, identity)
     }
 
     override suspend fun create(
@@ -101,7 +101,7 @@ internal class DefaultTicketMessageRepository(
         }
 
         val messageIds = rows.map { it[t.id].value }
-        val attachmentCount = attachmentRepository.countByMessageIds(messageIds)
+        val attachmentCount = ticketMessageAttachmentRepository.countByMessageIds(messageIds)
 
         val lastByTimestamp = rows.maxByOrNull { it[t.platformTimestamp] }
 
@@ -145,8 +145,8 @@ internal class DefaultTicketMessageRepository(
 
         return entities.map { entity ->
             val identity = entity.senderIdentityId?.let { channelIdentityRepository.findById(it) }
-            val attachments = attachmentRepository.findByMessage(entity.id.value, conv.channel)
-            entity.toDomain(conv, attachments, identity)
+            val messageAttachments = ticketMessageAttachmentRepository.findByMessage(entity.id.value)
+            entity.toDomain(conv, messageAttachments, identity)
         }
     }
 

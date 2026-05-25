@@ -39,6 +39,13 @@ interface TicketMessageAttachmentRepository {
     ): TicketMessageAttachment
 
     /**
+     * Returns the total number of attachment metadata records for the given message ids.
+     *
+     * Returns `0` if [messageIds] is empty.
+     */
+    suspend fun countByMessageIds(messageIds: Collection<Long>): Int
+
+    /**
      * Returns all attachment metadata records for the given message, in insertion order.
      */
     suspend fun findByMessage(messageId: Long): List<TicketMessageAttachment>

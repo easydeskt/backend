@@ -12,25 +12,25 @@ import org.jetbrains.exposed.v1.dao.LongEntityClass
 
 internal class TicketMessageAttachmentEntity(id: EntityID<Long>) : LongEntity(id) {
 
-    var attributes   : JsonObject          by TicketMessageAttachmentsTable.attributes
-    var channelBrand : String              by TicketMessageAttachmentsTable.channelBrand
-    var contentType  : String              by TicketMessageAttachmentsTable.contentType
-    var createdAt    : Instant             by TicketMessageAttachmentsTable.createdAt
-    var fileName     : String              by TicketMessageAttachmentsTable.fileName
-    var fileSize     : Long?               by TicketMessageAttachmentsTable.fileSize
-    var kind         : Attachment.Kind     by TicketMessageAttachmentsTable.kind
-    var messageId    : Long                by TicketMessageAttachmentsTable.messageId
+    var attributes: JsonObject by TicketMessageAttachmentsTable.attributes
+    var channelBrand: String by TicketMessageAttachmentsTable.channelBrand
+    var contentType: String by TicketMessageAttachmentsTable.contentType
+    var createdAt: Instant by TicketMessageAttachmentsTable.createdAt
+    var fileName: String by TicketMessageAttachmentsTable.fileName
+    var fileSize: Long? by TicketMessageAttachmentsTable.fileSize
+    var kind: Attachment.Kind by TicketMessageAttachmentsTable.kind
+    var messageId: Long by TicketMessageAttachmentsTable.messageId
 
     fun toDomain() = TicketMessageAttachment(
-        attributes   = attributes,
+        attributes = attributes,
         channelBrand = channelBrand,
-        contentType  = ContentType.parse(contentType),
-        createdAt    = createdAt,
-        fileName     = fileName,
-        fileSize     = fileSize,
-        identifier   = id.value,
-        kind         = kind,
-        messageId    = messageId,
+        contentType = ContentType.parse(contentType),
+        createdAt = createdAt,
+        fileName = fileName,
+        fileSize = fileSize,
+        identifier = id.value,
+        kind = kind,
+        messageId = messageId,
     )
 
     companion object : LongEntityClass<TicketMessageAttachmentEntity>(TicketMessageAttachmentsTable)
