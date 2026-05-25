@@ -55,6 +55,37 @@ internal class DefaultTicketRepository : TicketRepository {
             }
         }
 
+    override suspend fun avgFirstResponseTimeMinutes(agentId: Uuid): Double? =
+        suspendTransaction {
+            exec("""
+                SELECT AVG(EXTRACT(EPOCH FROM (m.first_at - t.created_at)) / 60.0)
+                FROM tickets t
+                JOIN (
+                    SELECT ticket_id, MIN(platform_timestamp) AS first_at
+                    FROM ticket_messages
+                    WHERE sender_kind = 'AGENT'
+                    AND sender_agent_id = '$agentId'::uuid
+                    GROUP BY ticket_id
+                ) m ON m.ticket_id = t.id
+                WHERE t.assigned_agent_id = '$agentId'::uuid
+            """.trimIndent()) { rs ->
+                if (rs.next()) rs.getDouble(1).takeIf { !rs.wasNull() } else null
+            }
+        }
+
+    override suspend fun resolvedTodayCount(agentId: Uuid): Int =
+        suspendTransaction {
+            exec("""
+                SELECT COUNT(*)
+                FROM tickets
+                WHERE assigned_agent_id = '$agentId'::uuid
+                AND status = 'RESOLVED'
+                AND resolved_at::date = CURRENT_DATE
+            """.trimIndent()) { rs ->
+                if (rs.next()) rs.getInt(1) else 0
+            } ?: 0
+        }
+
     override suspend fun close(id: Long): Ticket? =
         suspendTransaction {
             val entity = TicketEntity.findById(id) ?: return@suspendTransaction null

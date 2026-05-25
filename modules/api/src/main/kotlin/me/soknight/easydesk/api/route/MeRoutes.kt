@@ -22,8 +22,10 @@ import org.koin.core.annotation.Single
 @Serializable
 data class MeResponse(
     val agent: AgentResponse,
+    @SerialName("avg_response_minutes") val avgResponseMinutes: Double?,
     @SerialName("in_progress_ticket_count") val inProgressTicketCount: Int,
     @SerialName("open_ticket_count") val openTicketCount: Int,
+    @SerialName("resolved_today") val resolvedToday: Int,
 )
 
 @Single
@@ -38,10 +40,13 @@ class MeRoutes(
                 val principal = authenticator.authenticate(call)
                     ?: return@get call.respond(HttpStatusCode.Unauthorized, ServerErrorDto.Unauthorized)
                 val assigned = ticketRepository.findByAssignedAgent(principal.agent.identifier)
+                val agentId = principal.agent.identifier
                 call.respond(HttpStatusCode.OK, MeResponse(
                     agent = principal.agent.toResponse(principal.telegramUsername),
+                    avgResponseMinutes = ticketRepository.avgFirstResponseTimeMinutes(agentId),
                     inProgressTicketCount = assigned.count { it.status == Status.IN_PROGRESS },
                     openTicketCount = assigned.count { it.status == Status.OPEN },
+                    resolvedToday = ticketRepository.resolvedTodayCount(agentId),
                 ))
             }.describe {
                 summary = "Get current agent"

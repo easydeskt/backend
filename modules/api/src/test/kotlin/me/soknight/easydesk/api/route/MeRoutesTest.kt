@@ -50,6 +50,8 @@ class MeRoutesTest {
     fun `GET me returns 200 with zero ticket counts when no assigned tickets`() = withApp {
         coEvery { authenticator.authenticate(any()) } returns TestFixtures.operatorPrincipal
         coEvery { ticketRepository.findByAssignedAgent(TestFixtures.operatorId) } returns emptyList()
+        coEvery { ticketRepository.avgFirstResponseTimeMinutes(TestFixtures.operatorId) } returns null
+        coEvery { ticketRepository.resolvedTodayCount(TestFixtures.operatorId) } returns 0
 
         val response = client.get("/api/v1/me")
 
@@ -66,6 +68,8 @@ class MeRoutesTest {
         )
         coEvery { authenticator.authenticate(any()) } returns TestFixtures.operatorPrincipal
         coEvery { ticketRepository.findByAssignedAgent(TestFixtures.operatorId) } returns tickets
+        coEvery { ticketRepository.avgFirstResponseTimeMinutes(TestFixtures.operatorId) } returns null
+        coEvery { ticketRepository.resolvedTodayCount(TestFixtures.operatorId) } returns 0
 
         val response = client.get("/api/v1/me")
 
@@ -76,6 +80,8 @@ class MeRoutesTest {
     fun `GET me includes telegram username from principal`() = withApp {
         coEvery { authenticator.authenticate(any()) } returns TestFixtures.operatorPrincipal
         coEvery { ticketRepository.findByAssignedAgent(TestFixtures.operatorId) } returns emptyList()
+        coEvery { ticketRepository.avgFirstResponseTimeMinutes(TestFixtures.operatorId) } returns null
+        coEvery { ticketRepository.resolvedTodayCount(TestFixtures.operatorId) } returns 0
 
         val response = client.get("/api/v1/me")
 

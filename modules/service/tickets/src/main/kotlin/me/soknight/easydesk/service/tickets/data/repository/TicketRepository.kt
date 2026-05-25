@@ -33,6 +33,19 @@ interface TicketRepository {
     suspend fun avgFirstResponseTimeMinutes(): Double?
 
     /**
+     * Returns the average time in minutes from ticket creation to the first agent message
+     * sent by [agentId], computed only over tickets assigned to that agent that have at least
+     * one such message. Returns `null` when no qualifying tickets exist.
+     */
+    suspend fun avgFirstResponseTimeMinutes(agentId: Uuid): Double?
+
+    /**
+     * Returns the count of tickets assigned to [agentId] that reached
+     * [SupervisorTicket.Status.RESOLVED] today (server UTC date).
+     */
+    suspend fun resolvedTodayCount(agentId: Uuid): Int
+
+    /**
      * Transitions the ticket to [SupervisorTicket.Status.CLOSED].
      * Returns the updated [Ticket], or `null` if no ticket with [id] exists.
      *
