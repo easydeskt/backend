@@ -19,8 +19,8 @@ class TelegramAttachmentTest {
         val bytes = byteArrayOf(1, 2, 3)
         val attachment = TelegramAttachment.Photo("file_id", bytes, 100L, 100, 100, channel)
         assertEquals(Attachment.Kind.PHOTO, attachment.kind)
-        // accessing contentSource should not throw
-        attachment.contentSource
+        val readBack = attachment.contentSource.readByteArray()
+        assertEquals(bytes.toList(), readBack.toList())
     }
 
     @Test
@@ -31,7 +31,14 @@ class TelegramAttachmentTest {
 
     @Test
     fun `file id stored in attributes`() {
-        val attachment = TelegramAttachment.Document("abc123", null, "doc.pdf", ContentType.Application.Pdf, null, channel)
+        val attachment = TelegramAttachment.Document(
+            "abc123",
+            null,
+            "doc.pdf",
+            ContentType.Application.Pdf,
+            null,
+            channel,
+        )
         assertEquals("abc123", (attachment.attributes["telegram.file_id"] as JsonPrimitive).content)
     }
 

@@ -29,7 +29,9 @@ sealed class TelegramAttachment(
 
     override val contentSource: Source
         get() = bytes?.let { Buffer().apply { write(it) } }
-            ?: throw UnsupportedOperationException("No cached bytes for file_id=$fileId (file > 20 MB or download skipped)")
+            ?: throw UnsupportedOperationException(
+                "No cached bytes for file_id=$fileId (file > 20 MB or download skipped)",
+            )
 
     class Audio(
         fileId: String,
