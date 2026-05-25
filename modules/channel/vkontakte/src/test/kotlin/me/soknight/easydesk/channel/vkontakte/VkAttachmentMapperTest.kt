@@ -54,7 +54,13 @@ class VkAttachmentMapperTest {
     fun `should_returnNull_when_stickerAttachmentMapped`() = runTest {
         val httpClient = mockHttpClient(byteArrayOf())
         val vkSticker = VkAttachment.Sticker(
-            images = listOf(VkAttachment.Sticker.Image(height = 512, url = "https://example.com/sticker.png", width = 512)),
+            images = listOf(
+                VkAttachment.Sticker.Image(
+                    height = 512,
+                    url = "https://example.com/sticker.png",
+                    width = 512,
+                ),
+            ),
             stickerId = 9001,
         )
 
@@ -143,6 +149,30 @@ class VkAttachmentMapperTest {
         assertEquals(Attachment.Kind.DOCUMENT, result.kind)
         val playerUrl = result.attributes["vk.player_url"]
         assertEquals("https://vk.com/video42_11", (playerUrl as JsonPrimitive).content)
+    }
+
+    @Test
+    fun `should_returnNull_when_photoDownloadFails`() = runTest {
+        val engine = MockEngine { _ ->
+            respond("", HttpStatusCode.InternalServerError)
+        }
+        val client = HttpClient(engine)
+        val vkPhoto = VkAttachment.Photo(
+            id = 100,
+            ownerId = 42L,
+            sizes = listOf(
+                VkAttachment.Photo.Size(
+                    height = 200,
+                    type = "x",
+                    url = "https://example.com/photo.jpg",
+                    width = 300,
+                ),
+            ),
+        )
+
+        val result = VkAttachmentMapper.map(vkPhoto, channel, client)
+
+        assertNull(result)
     }
 
 }

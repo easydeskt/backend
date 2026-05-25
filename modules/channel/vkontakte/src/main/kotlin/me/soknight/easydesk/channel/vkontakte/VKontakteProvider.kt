@@ -123,6 +123,7 @@ object VKontakteProvider : ChannelProvider, KoinComponent {
         lpJobs.values.forEach { it.cancel() }
         lpJobs.clear()
         activeChannels.clear()
+        httpClient.close()
     }
 
     // ── private helpers ───────────────────────────────────────────────────────

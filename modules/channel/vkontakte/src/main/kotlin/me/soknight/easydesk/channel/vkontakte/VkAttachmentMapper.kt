@@ -140,9 +140,7 @@ object VkAttachmentMapper {
             override val attributes: Attributes = mapOf("vk.player_url" to JsonPrimitive(playerUrl))
             override val channel: Channel = channel
             override val contentSource: Source
-                get() = throw UnsupportedOperationException(
-                    "VK video '${vkAttachment.title}' has no direct download URL; use vk.player_url attribute",
-                )
+                get() = Buffer()  // no bytes available; use vk.player_url attribute instead
             override val contentType: ContentType = ContentType("video", "mp4")
             override val fileName: String = "${vkAttachment.title}.mp4"
             override val fileSize: Long? = null
