@@ -3,6 +3,7 @@ package me.soknight.easydesk.channel.email.domain
 import jakarta.activation.DataHandler
 import jakarta.mail.Authenticator
 import jakarta.mail.PasswordAuthentication
+import jakarta.mail.Part
 import jakarta.mail.Session
 import jakarta.mail.Transport
 import jakarta.mail.internet.InternetAddress
@@ -42,17 +43,18 @@ class EmailConversation(
 ) : Conversation {
 
     override suspend fun send(message: Message, replyToNativeId: String?): Message =
-        sendInternal(message.plainText ?: "", message.attachments, replyToNativeId)
+        sendInternal(message.plainText ?: "", message.attachments, replyToNativeId, attributes = message.attributes)
 
     override suspend fun send(replyToNativeId: String?, block: MessageBuilder.() -> Unit): Message {
         val builder = EmailMessageBuilder().apply(block)
-        return sendInternal(builder.plainText ?: "", builder.builtAttachments, replyToNativeId)
+        return sendInternal(builder.plainText ?: "", builder.builtAttachments, replyToNativeId, attributes = builder.builtAttributes)
     }
 
     private suspend fun sendInternal(
         plainText: String,
         attachments: List<Attachment>,
         replyToNativeId: String?,
+        attributes: Attributes = emptyMap(),
     ): Message {
         val config = channel.config
 
@@ -81,6 +83,7 @@ class EmailConversation(
             receiver = ChannelActor.Unknown,
             plainText = plainText.ifBlank { null },
             attachments = attachments.filter { it.kind != Attachment.Kind.STICKER },
+            attributes = attributes,
         )
     }
 
@@ -109,7 +112,7 @@ class EmailConversation(
                             ByteArrayDataSource(att.contentSource.readByteArray(), att.contentType.toString())
                         )
                         fileName = att.fileName
-                        disposition = jakarta.mail.Part.ATTACHMENT
+                        disposition = Part.ATTACHMENT
                     })
                 }.onFailure { logger.warn(it) { "Failed to attach '${att.fileName}' — skipping" } }
             }

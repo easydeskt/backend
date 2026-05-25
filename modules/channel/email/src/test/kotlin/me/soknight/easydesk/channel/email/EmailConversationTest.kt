@@ -1,6 +1,5 @@
 package me.soknight.easydesk.channel.email
 
-import io.mockk.every
 import io.mockk.mockk
 import jakarta.mail.Multipart
 import kotlinx.io.Buffer
