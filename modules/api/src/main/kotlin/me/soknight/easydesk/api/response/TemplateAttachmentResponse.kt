@@ -3,6 +3,7 @@ package me.soknight.easydesk.api.response
 import kotlin.time.Instant
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 import me.soknight.easydesk.service.templates.data.domain.ReplyTemplateAttachment
 import me.soknight.easydesk.supervisor.api.model.ReplyTemplate
 
@@ -13,17 +14,21 @@ data class TemplateAttachmentResponse(
     @SerialName("created_at") val createdAt: Instant,
     @SerialName("file_name") val fileName: String,
     @SerialName("file_size") val fileSize: Long?,
+    val attributes: JsonObject,
     val kind: String,
     @SerialName("template_id") val templateId: Long,
 )
 
-fun ReplyTemplate.Attachment.toAttachmentResponse() = TemplateAttachmentResponse(
-    attachmentId = attachmentId,
-    contentType = contentType.toString(),
-    createdAt = (this as? ReplyTemplateAttachment)?.createdAt
-        ?: error("Expected ReplyTemplateAttachment"),
-    fileName = fileName,
-    fileSize = fileSize,
-    kind = kind,
-    templateId = templateId,
-)
+fun ReplyTemplate.Attachment.toAttachmentResponse(): TemplateAttachmentResponse {
+    val rta = this as? ReplyTemplateAttachment ?: error("Expected ReplyTemplateAttachment")
+    return TemplateAttachmentResponse(
+        attachmentId = attachmentId,
+        attributes = rta.attributes,
+        contentType = contentType.toString(),
+        createdAt = rta.createdAt,
+        fileName = fileName,
+        fileSize = fileSize,
+        kind = kind,
+        templateId = templateId,
+    )
+}

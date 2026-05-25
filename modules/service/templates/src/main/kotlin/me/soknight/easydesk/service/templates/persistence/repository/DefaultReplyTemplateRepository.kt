@@ -85,9 +85,11 @@ internal class DefaultReplyTemplateRepository : ReplyTemplateRepository {
             template.name = name
             template.updatedAt = now
 
+            val keepIds = attachments.mapNotNull { it.attachmentId }.toSet()
             ReplyTemplateAttachmentEntity
                 .find { ReplyTemplateAttachmentsTable.templateId eq id }
                 .toList()
+                .filter { it.id.value !in keepIds }
                 .forEach { it.delete() }
 
             template.toDomain(persistAttachments(id, attachments, now))
@@ -105,17 +107,21 @@ internal class DefaultReplyTemplateRepository : ReplyTemplateRepository {
         attachments: List<ReplyTemplateAttachmentDto>,
         now: Instant,
     ): List<ReplyTemplateAttachment> = attachments.mapIndexed { index, src ->
-        ReplyTemplateAttachmentEntity.new {
-            this.attributes = src.attributes
-            this.contentType = src.contentType.toString()
-            this.createdAt = now
-            this.fileName = src.fileName
-            this.fileSize = src.fileSize
-            this.kind = src.kind
-            this.position = index
-            this.storagePath = src.storagePath
-            this.templateId = templateId
-        }.toDomain()
+        val entity = src.attachmentId
+            ?.let { ReplyTemplateAttachmentEntity.findById(it) }
+            ?.also { it.position = index }
+            ?: ReplyTemplateAttachmentEntity.new {
+                this.attributes = src.attributes
+                this.contentType = src.contentType.toString()
+                this.createdAt = now
+                this.fileName = src.fileName
+                this.fileSize = src.fileSize
+                this.kind = src.kind
+                this.position = index
+                this.storagePath = src.storagePath
+                this.templateId = templateId
+            }
+        entity.toDomain()
     }
 
     private fun loadAttachments(templateId: Long): List<ReplyTemplateAttachment> =

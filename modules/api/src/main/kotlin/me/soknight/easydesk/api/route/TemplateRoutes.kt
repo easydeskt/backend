@@ -9,10 +9,14 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.routing.openapi.*
 import io.ktor.utils.io.*
+import java.io.ByteArrayInputStream
+import javax.imageio.ImageIO
 import kotlin.uuid.ExperimentalUuidApi
 import kotlinx.io.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import me.soknight.easydesk.api.auth.ApiAuthenticator
 import me.soknight.easydesk.api.response.toAttachmentResponse
 import me.soknight.easydesk.api.response.toResponse
@@ -197,7 +201,7 @@ class TemplateRoutes(
                 call.receiveMultipart().forEachPart { part ->
                     when {
                         part is PartData.FormItem && part.name == "kind" ->
-                            kind = Attachment.Kind.entries.firstOrNull { it.key == part.value }
+                            kind = Attachment.Kind.entries.firstOrNull { it.key.equals(part.value, ignoreCase = true) }
                         part is PartData.FileItem && part.name == "file" -> {
                             fileName = part.originalFileName ?: "attachment"
                             contentType = part.contentType ?: ContentType.Application.OctetStream
@@ -217,7 +221,30 @@ class TemplateRoutes(
                 val source = Buffer().also { it.write(resolvedBytes) }
                 val storagePath = storageService.store(source, resolvedFileName, resolvedKind)
 
+                val imageAttributes: JsonObject = if (resolvedKind == Attachment.Kind.PHOTO) {
+                    try {
+                        val stream = ImageIO.createImageInputStream(ByteArrayInputStream(resolvedBytes))
+                        val readers = ImageIO.getImageReaders(stream)
+                        if (readers.hasNext()) {
+                            val reader = readers.next()
+                            try {
+                                reader.input = stream
+                                JsonObject(mapOf(
+                                    "width" to JsonPrimitive(reader.getWidth(0)),
+                                    "height" to JsonPrimitive(reader.getHeight(0)),
+                                ))
+                            } finally {
+                                reader.dispose()
+                                stream.close()
+                            }
+                        } else JsonObject(emptyMap())
+                    } catch (_: Exception) {
+                        JsonObject(emptyMap())
+                    }
+                } else JsonObject(emptyMap())
+
                 val newDto = ReplyTemplateAttachmentDto(
+                    attributes = imageAttributes,
                     contentType = resolvedContentType,
                     fileName = resolvedFileName,
                     fileSize = resolvedBytes.size.toLong(),
@@ -354,6 +381,7 @@ class TemplateRoutes(
 }
 
 private fun ReplyTemplateAttachment.toDto() = ReplyTemplateAttachmentDto(
+    attachmentId = attachmentId,
     attributes = attributes,
     contentType = contentType,
     fileName = fileName,

@@ -22,4 +22,5 @@ data class ReplyTemplateAttachmentDto(
     val contentType: ContentType,
     val fileSize: Long? = null,
     val attributes: JsonObject = JsonObject(emptyMap()),
+    val attachmentId: Long? = null,
 )
