@@ -57,7 +57,7 @@ class ConversationRegistryTest {
         }
 
         val result = registry.getOrNull(42L)
-        assertNotNull(result)
+        assertSame(restoredConversation, result)
     }
 
     @Test
@@ -83,7 +83,7 @@ class ConversationRegistryTest {
 
         // conversationRepo should only be called once (cache hit on second call)
         coVerify(exactly = 1) { conversationRepo.findById(55L) }
-        assertNotNull(second)
+        assertSame(restoredConversation, second)
     }
 
 }

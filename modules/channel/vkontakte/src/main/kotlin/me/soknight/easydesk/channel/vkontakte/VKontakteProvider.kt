@@ -130,12 +130,12 @@ object VKontakteProvider : ChannelProvider, KoinComponent {
         httpClient.close()
     }
 
-    fun getBot(serviceChannelId: Long): VkBot? = activeBots[serviceChannelId]
+    internal fun getBot(serviceChannelId: Long): VkBot? = activeBots[serviceChannelId]
 
-    fun getBotForChannel(channel: VKontakteChannel): VkBot? =
+    internal fun getBotForChannel(channel: VKontakteChannel): VkBot? =
         activeBots.entries.firstOrNull { (key, _) -> activeChannels[key] === channel }?.value
 
-    fun getChannel(serviceChannelId: Long): VKontakteChannel? = activeChannels[serviceChannelId]
+    internal fun getChannel(serviceChannelId: Long): VKontakteChannel? = activeChannels[serviceChannelId]
 
     // ── private helpers ───────────────────────────────────────────────────────
 
