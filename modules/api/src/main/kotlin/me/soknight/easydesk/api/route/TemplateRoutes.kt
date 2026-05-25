@@ -90,8 +90,12 @@ class TemplateRoutes(
                 if (req.humanName.isBlank()) {
                     return@post call.respond(HttpStatusCode.BadRequest, ServerErrorDto.BadRequest)
                 }
+                val trimmedName = req.humanName.trim()
+                if (templateRepository.findByName(trimmedName) != null) {
+                    return@post call.respond(HttpStatusCode.Conflict, ServerErrorDto.Conflict)
+                }
                 val template = templateRepository.create(
-                    name = req.humanName.trim(),
+                    name = trimmedName,
                     content = req.content,
                     createdBy = principal.agent.identifier,
                     attachments = emptyList(),
@@ -104,6 +108,7 @@ class TemplateRoutes(
                     HttpStatusCode.BadRequest { description = "Bad request" }
                     HttpStatusCode.Unauthorized { description = "Unauthorized" }
                     HttpStatusCode.Forbidden { description = "Forbidden" }
+                    HttpStatusCode.Conflict { description = "Conflict" }
                 }
             }
 
@@ -121,9 +126,14 @@ class TemplateRoutes(
                 }
                 val existing = templateRepository.findById(id)
                     ?: return@put call.respond(HttpStatusCode.NotFound, ServerErrorDto.NotFound)
+                val trimmedName = req.humanName.trim()
+                val conflicting = templateRepository.findByName(trimmedName)
+                if (conflicting != null && conflicting.identifier != id) {
+                    return@put call.respond(HttpStatusCode.Conflict, ServerErrorDto.Conflict)
+                }
                 val updated = templateRepository.update(
                     id = id,
-                    name = req.humanName.trim(),
+                    name = trimmedName,
                     content = req.content,
                     attachments = existing.attachments.filterIsInstance<ReplyTemplateAttachment>().map { it.toDto() },
                 ) ?: return@put call.respond(HttpStatusCode.NotFound, ServerErrorDto.NotFound)
@@ -135,6 +145,7 @@ class TemplateRoutes(
                     HttpStatusCode.BadRequest { description = "Bad request" }
                     HttpStatusCode.Unauthorized { description = "Unauthorized" }
                     HttpStatusCode.Forbidden { description = "Forbidden" }
+                    HttpStatusCode.Conflict { description = "Conflict" }
                     HttpStatusCode.NotFound { description = "Not found" }
                 }
             }
