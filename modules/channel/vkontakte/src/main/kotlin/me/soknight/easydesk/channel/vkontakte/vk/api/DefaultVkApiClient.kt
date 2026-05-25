@@ -5,9 +5,13 @@ import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.request.forms.formData
 import io.ktor.client.request.forms.submitForm
+import io.ktor.client.request.forms.submitFormWithBinaryData
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
+import io.ktor.http.Headers
+import io.ktor.http.HttpHeaders
 import io.ktor.http.parameters
 import io.ktor.serialization.kotlinx.json.json
 import kotlin.random.Random
@@ -53,10 +57,21 @@ internal class DefaultVkApiClient(
         })
     }
 
+    override suspend fun getDocUploadServer(peerId: Long, type: String): VkDocUploadServerResponse =
+        post("docs.getMessagesUploadServer", parameters {
+            append("peer_id", peerId.toString())
+            append("type", type)
+        })
+
     override suspend fun getLongPollServer(): VkLongPollServer =
         post<LongPollServerDto>("groups.getLongPollServer", parameters {
             append("group_id", groupId.toString())
         }).toDomain()
+
+    override suspend fun getPhotoUploadServer(peerId: Long): VkPhotoUploadServerResponse =
+        post("photos.getMessagesUploadServer", parameters {
+            append("peer_id", peerId.toString())
+        })
 
     override suspend fun getUpdates(server: VkLongPollServer): VkLongPollResponse =
         httpClient.get(server.server) {
@@ -75,6 +90,16 @@ internal class DefaultVkApiClient(
             append("user_ids", userIds.joinToString(","))
         }).map { it.toDomain() }
 
+    override suspend fun saveDoc(file: String): VkSavedDocResponse =
+        post("docs.save", parameters { append("file", file) })
+
+    override suspend fun savePhoto(server: Int, photo: String, hash: String): List<VkSavedPhotoResponse> =
+        post("photos.saveMessagesPhoto", parameters {
+            append("hash", hash)
+            append("photo", photo)
+            append("server", server.toString())
+        })
+
     override suspend fun sendMessage(
         peerId: Long,
         text: String,
@@ -87,6 +112,30 @@ internal class DefaultVkApiClient(
         append("random_id", Random.nextLong().toString())
         replyTo?.let { append("reply_to", it.toString()) }
     })
+
+    override suspend fun uploadDocBytes(uploadUrl: String, bytes: ByteArray, fileName: String): VkDocUploadResponse =
+        httpClient.submitFormWithBinaryData(
+            url = uploadUrl,
+            formData = formData {
+                append("file", bytes, Headers.build {
+                    append(HttpHeaders.ContentDisposition, "filename=\"$fileName\"")
+                })
+            },
+        ).body()
+
+    override suspend fun uploadPhotoBytes(
+        uploadUrl: String,
+        bytes: ByteArray,
+        fileName: String,
+    ): VkPhotoUploadResponse =
+        httpClient.submitFormWithBinaryData(
+            url = uploadUrl,
+            formData = formData {
+                append("photo", bytes, Headers.build {
+                    append(HttpHeaders.ContentDisposition, "filename=\"$fileName\"")
+                })
+            },
+        ).body()
 
     // ── private helpers ───────────────────────────────────────────────────────
 

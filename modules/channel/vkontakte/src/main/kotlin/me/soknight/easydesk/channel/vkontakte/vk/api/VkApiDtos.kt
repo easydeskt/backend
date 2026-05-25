@@ -236,6 +236,55 @@ internal data class VkGraffitiDto(
     val url: String = "",
 )
 
+// ── Upload DTOs ───────────────────────────────────────────────────────────────
+
+@Serializable
+internal data class VkDocUploadServerResponse(
+    @SerialName("upload_url") val uploadUrl: String,
+)
+
+@Serializable
+internal data class VkDocUploadResponse(
+    @SerialName("file") val file: String,
+)
+
+@Serializable
+internal data class VkSavedDocResponse(
+    @SerialName("type") val type: String,
+    @SerialName("doc") val doc: VkSavedDoc? = null,
+    @SerialName("audio_message") val audioMessage: VkSavedAudioMessage? = null,
+)
+
+@Serializable
+internal data class VkSavedDoc(
+    @SerialName("id") val id: Long,
+    @SerialName("owner_id") val ownerId: Long,
+)
+
+@Serializable
+internal data class VkSavedAudioMessage(
+    @SerialName("id") val id: Long,
+    @SerialName("owner_id") val ownerId: Long,
+)
+
+@Serializable
+internal data class VkPhotoUploadServerResponse(
+    @SerialName("upload_url") val uploadUrl: String,
+)
+
+@Serializable
+internal data class VkPhotoUploadResponse(
+    @SerialName("hash") val hash: String,
+    @SerialName("photo") val photo: String,
+    @SerialName("server") val server: Int,
+)
+
+@Serializable
+internal data class VkSavedPhotoResponse(
+    @SerialName("id") val id: Long,
+    @SerialName("owner_id") val ownerId: Long,
+)
+
 // ── Update-specific DTOs ──────────────────────────────────────────────────────
 
 @Serializable
