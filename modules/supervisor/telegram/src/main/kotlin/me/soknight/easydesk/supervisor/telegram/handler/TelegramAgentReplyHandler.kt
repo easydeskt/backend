@@ -9,9 +9,11 @@ import dev.inmo.tgbotapi.types.message.abstracts.ContentMessage
 import dev.inmo.tgbotapi.types.message.abstracts.OptionallyFromUserMessage
 import dev.inmo.tgbotapi.types.message.content.TextContent
 import dev.inmo.tgbotapi.utils.extensions.threadIdOrNull
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.JsonObject
 import me.soknight.easydesk.channel.api.model.Conversation
 import me.soknight.easydesk.channel.telegram.TelegramAttachmentParser
+import me.soknight.easydesk.channel.telegram.TelegramBrand
 import me.soknight.easydesk.channel.telegram.TelegramChannel
 import me.soknight.easydesk.channel.telegram.config.TelegramConfig
 import me.soknight.easydesk.core.event.EventBus
@@ -92,15 +94,17 @@ class TelegramAgentReplyHandler(
             platformTimestamp = Instant.fromEpochMilliseconds(message.date.unixMillisLong),
         )
         for (attachment in parsedAttachments) {
-            ticketMessageAttachmentRepository.create(
-                messageId = ticketMessage.identifier,
-                kind = attachment.kind,
-                fileName = attachment.fileName,
-                contentType = attachment.contentType,
-                fileSize = attachment.fileSize,
-                channelBrand = TelegramSupervisorBrand.identifier,
-                attributes = JsonObject(attachment.attributes),
-            )
+            runCatching {
+                ticketMessageAttachmentRepository.create(
+                    messageId = ticketMessage.identifier,
+                    kind = attachment.kind,
+                    fileName = attachment.fileName,
+                    contentType = attachment.contentType,
+                    fileSize = attachment.fileSize,
+                    channelBrand = TelegramBrand.identifier,
+                    attributes = JsonObject(attachment.attributes),
+                )
+            }.onFailure { if (it is CancellationException) throw it; logger.warn(it) { "Failed to persist attachment metadata" } }
         }
         ticketRepository.updateReadMarker(relayed.ticketId, ticketMessage.identifier)
         eventBus.publish(TicketMessageEvent.Recorded(

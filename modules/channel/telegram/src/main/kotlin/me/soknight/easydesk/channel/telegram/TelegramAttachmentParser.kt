@@ -12,6 +12,9 @@ import dev.inmo.tgbotapi.types.message.content.StickerContent
 import dev.inmo.tgbotapi.types.message.content.VideoContent
 import dev.inmo.tgbotapi.types.message.content.VoiceContent
 import io.ktor.http.ContentType
+import kotlinx.coroutines.CancellationException
+import me.soknight.easydesk.core.logging.getLogger
+import me.soknight.easydesk.core.logging.warn
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -21,12 +24,14 @@ import kotlin.time.Duration.Companion.seconds
  * reply handler can reuse the same download-and-parse logic without duplication.
  *
  * Files that exceed the [DOWNLOAD_LIMIT] are referenced by `file_id` only — [TelegramAttachment.bytes]
- * will be `null` for those. Download failures are silently swallowed; the attachment is still
+ * will be `null` for those. Download failures are logged as warnings; the attachment is still
  * created and forwarded by `file_id`.
  */
 object TelegramAttachmentParser {
 
     private const val DOWNLOAD_LIMIT = 20L * 1024L * 1024L
+
+    private val logger = getLogger()
 
     /**
      * Parses the media content of [message] into a list of [TelegramAttachment]s.
@@ -147,7 +152,9 @@ object TelegramAttachmentParser {
         fileSize: Long?,
     ): ByteArray? {
         if (fileSize != null && fileSize > DOWNLOAD_LIMIT) return null
-        return runCatching { bot.downloadFile(file) }.getOrNull()
+        return runCatching { bot.downloadFile(file) }
+            .onFailure { if (it is CancellationException) throw it; logger.warn(it) { "Failed to download Telegram file ${file.fileId}" } }
+            .getOrNull()
     }
 
 }

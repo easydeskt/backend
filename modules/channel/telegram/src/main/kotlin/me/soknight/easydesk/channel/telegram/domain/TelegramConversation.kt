@@ -20,9 +20,6 @@ import dev.inmo.tgbotapi.types.media.TelegramMediaDocument
 import dev.inmo.tgbotapi.types.media.TelegramMediaPhoto
 import dev.inmo.tgbotapi.types.media.TelegramMediaVideo
 import dev.inmo.tgbotapi.utils.RiskFeature
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import kotlinx.io.readByteArray
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import me.soknight.easydesk.channel.api.Channel
@@ -32,6 +29,7 @@ import me.soknight.easydesk.channel.api.dsl.MessageBuilder
 import me.soknight.easydesk.channel.api.model.Attachment
 import me.soknight.easydesk.channel.api.model.Conversation
 import me.soknight.easydesk.channel.api.model.Message
+import me.soknight.easydesk.channel.telegram.TelegramAttachment
 import me.soknight.easydesk.channel.telegram.dsl.TelegramMessageBuilder
 import me.soknight.easydesk.core.logging.getLogger
 import me.soknight.easydesk.core.logging.warn
@@ -132,14 +130,13 @@ class TelegramConversation(
         }
     }
 
-    private suspend fun attachmentInputFile(attachment: Attachment): InputFile {
+    private fun attachmentInputFile(attachment: Attachment): InputFile {
+        // prefer bytes when available (file_ids are bot-scoped; bytes allow cross-bot forwarding)
+        val bytes = (attachment as? TelegramAttachment)?.bytes
+        if (bytes != null) return bytes.asMultipartFile(attachment.fileName)
         val fileId = attachment.attributes["telegram.file_id"]?.let { (it as? JsonPrimitive)?.contentOrNull }
-        return if (fileId != null) {
-            FileId(fileId)
-        } else {
-            val bytes = withContext(Dispatchers.IO) { attachment.contentSource.readByteArray() }
-            bytes.asMultipartFile(attachment.fileName)
-        }
+        if (fileId != null) return FileId(fileId)
+        error("Attachment '${attachment.fileName}' has neither cached bytes nor a telegram.file_id")
     }
 
     private suspend fun sendSingle(
