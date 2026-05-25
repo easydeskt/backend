@@ -10,17 +10,23 @@ import dev.inmo.tgbotapi.types.message.abstracts.ContentMessage
 import dev.inmo.tgbotapi.types.message.abstracts.Message
 import dev.inmo.tgbotapi.types.message.abstracts.OptionallyFromUserMessage
 import dev.inmo.tgbotapi.types.message.content.TextContent
+import io.ktor.http.ContentType
 import io.mockk.clearMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkObject
+import io.mockk.unmockkObject
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.test.runTest
 import me.soknight.easydesk.channel.api.dsl.MessageBuilder
+import me.soknight.easydesk.channel.api.model.Attachment
 import me.soknight.easydesk.channel.api.model.Conversation
+import me.soknight.easydesk.channel.telegram.TelegramAttachment
+import me.soknight.easydesk.channel.telegram.TelegramAttachmentParser
 import me.soknight.easydesk.core.event.EventBus
 import me.soknight.easydesk.service.agents.domain.Agent
 import me.soknight.easydesk.service.agents.repository.AgentRepository
@@ -156,6 +162,55 @@ class TelegramAgentReplyHandlerTest {
         handler.handleAgentMessage(message, bot)
 
         coVerify(exactly = 0) { conversation.send(any(), any<suspend MessageBuilder.() -> Unit>()) }
+    }
+
+    @Test
+    fun `should_skipMessage_when_textIsBlankAndNoAttachments`() = runTest {
+        mockkObject(TelegramAttachmentParser)
+        try {
+            coEvery { TelegramAttachmentParser.parse(any(), any(), any()) } returns emptyList()
+            val message = makeTextMessage("   ", threadId = MessageThreadId(7L))
+
+            handler.handleAgentMessage(message, bot)
+
+            coVerify(exactly = 0) { conversation.send(any(), any<suspend MessageBuilder.() -> Unit>()) }
+        } finally {
+            unmockkObject(TelegramAttachmentParser)
+        }
+    }
+
+    @Test
+    fun `should_forwardMessageAndPersistAttachment_when_attachmentsPresent`() = runTest {
+        mockkObject(TelegramAttachmentParser)
+        try {
+            val photoAttachment = TelegramAttachment.Photo(
+                fileId = "file-123",
+                bytes = byteArrayOf(1, 2, 3),
+                fileSize = 3L,
+                height = 100,
+                width = 200,
+                channel = handler.supervisorChannel,
+            )
+            coEvery { TelegramAttachmentParser.parse(any(), any(), any()) } returns listOf(photoAttachment)
+            val message = makeTextMessage("Caption text", threadId = MessageThreadId(7L))
+
+            handler.handleAgentMessage(message, bot)
+
+            coVerify(exactly = 1) { conversation.send(replyToNativeId = replyMessageId.long.toString(), block = any()) }
+            coVerify(exactly = 1) {
+                ticketMessageAttachmentRepository.create(
+                    messageId = any(),
+                    kind = Attachment.Kind.PHOTO,
+                    fileName = "photo.jpg",
+                    contentType = ContentType.Image.JPEG,
+                    fileSize = 3L,
+                    channelBrand = any(),
+                    attributes = any(),
+                )
+            }
+        } finally {
+            unmockkObject(TelegramAttachmentParser)
+        }
     }
 
     // -------------- HELPERS ------------------------------------------------------------------------------------------

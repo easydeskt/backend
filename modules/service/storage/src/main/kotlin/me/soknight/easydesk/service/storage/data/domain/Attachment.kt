@@ -86,6 +86,8 @@ sealed class Attachment(
      */
     class Audio(base: Attachment) : Attachment(base, Kind.AUDIO), ChannelAttachment.Audio {
 
+        override val kind: Kind get() = Kind.AUDIO
+
         override val duration: Duration
             get() = (attributes["duration_ms"]?.jsonPrimitive?.long
                 ?: error("duration_ms missing in attributes for Audio id=$identifier")).milliseconds
@@ -101,10 +103,16 @@ sealed class Attachment(
     /**
      * A generic file attachment without additional metadata.
      */
-    class Document(base: Attachment) : Attachment(base, Kind.DOCUMENT), ChannelAttachment.Document
+    class Document(base: Attachment) : Attachment(base, Kind.DOCUMENT), ChannelAttachment.Document {
+
+        override val kind: Kind get() = Kind.DOCUMENT
+
+    }
 
     /** An image attachment. Reads `height` and `width` from [attributes]. */
     class Photo(base: Attachment) : Attachment(base, Kind.PHOTO), ChannelAttachment.Photo {
+
+        override val kind: Kind get() = Kind.PHOTO
 
         override val height: Int
             get() = attributes["height"]?.jsonPrimitive?.int
@@ -119,6 +127,8 @@ sealed class Attachment(
     /** A sticker attachment. Reads `height` and `width` from [attributes]. */
     class Sticker(base: Attachment) : Attachment(base, Kind.STICKER), ChannelAttachment.Sticker {
 
+        override val kind: Kind get() = Kind.STICKER
+
         override val height: Int
             get() = attributes["height"]?.jsonPrimitive?.int
                 ?: error("height missing in attributes for Sticker id=$identifier")
@@ -131,6 +141,8 @@ sealed class Attachment(
 
     /** A video attachment. Reads `duration_ms`, `height`, `width` from [attributes]. */
     class Video(base: Attachment) : Attachment(base, Kind.VIDEO), ChannelAttachment.Video {
+
+        override val kind: Kind get() = Kind.VIDEO
 
         override val duration: Duration
             get() = (attributes["duration_ms"]?.jsonPrimitive?.long
@@ -148,6 +160,8 @@ sealed class Attachment(
 
     /** A voice message. Reads `duration_ms` from [attributes]. */
     class Voice(base: Attachment) : Attachment(base, Kind.VOICE), ChannelAttachment.Voice {
+
+        override val kind: Kind get() = Kind.VOICE
 
         override val duration: Duration
             get() = (attributes["duration_ms"]?.jsonPrimitive?.long

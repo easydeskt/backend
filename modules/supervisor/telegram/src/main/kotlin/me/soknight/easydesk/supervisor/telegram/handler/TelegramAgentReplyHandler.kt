@@ -73,7 +73,7 @@ class TelegramAgentReplyHandler(
         val agent = agentRepository.findBySupervisorBinding(TelegramSupervisorBrand, userId) ?: return
         val agentText = (message.content as? TextContent)?.text
         val parsedAttachments = TelegramAttachmentParser.parse(message, bot, supervisorChannel)
-        if (agentText == null && parsedAttachments.isEmpty()) return
+        if (agentText.isNullOrBlank() && parsedAttachments.isEmpty()) return
         val conversation = resolveConversation(relayed.conversationId) ?: return
         conversation.send(replyToNativeId = replyTo.messageId.long.toString()) {
             plainText = agentText
