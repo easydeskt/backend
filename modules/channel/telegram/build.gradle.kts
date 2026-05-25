@@ -11,5 +11,6 @@ dependencies {
     implementation(libs.ktgbotapi)
     implementation(projects.modules.service.channels)
 
+    testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockk)
 }
