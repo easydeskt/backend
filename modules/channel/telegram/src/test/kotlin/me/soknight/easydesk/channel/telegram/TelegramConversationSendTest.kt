@@ -14,6 +14,7 @@ import io.ktor.http.ContentType
 import io.mockk.clearMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import kotlin.test.BeforeTest
@@ -51,15 +52,15 @@ class TelegramConversationSendTest {
     fun setUp() {
         clearMocks(bot)
         val sentMessage = mockk<ContentMessage<*>>(relaxed = true)
-        coEvery { sentMessage.messageId } returns sentMessageId
-        coEvery { bot.execute(any()) } returns sentMessage
+        every { sentMessage.messageId } returns sentMessageId
+        coEvery { bot.execute(any<Request<ContentMessage<*>>>()) } returns sentMessage
     }
 
     @Test
     fun `text only message sends SendTextMessage request`() = runTest {
         val requestSlot = slot<Request<*>>()
-        coEvery { bot.execute(capture(requestSlot)) } returns mockk(relaxed = true) {
-            coEvery { messageId } returns sentMessageId
+        coEvery { bot.execute(capture(requestSlot)) } answers {
+            mockk<ContentMessage<*>>(relaxed = true) { every { messageId } returns sentMessageId }
         }
 
         conversation.send(makeMessage(text = "Hello"))
@@ -73,8 +74,8 @@ class TelegramConversationSendTest {
     fun `single photo with telegram file_id sends request containing file_id`() = runTest {
         val photoMessage = makeMessage(text = "caption", attachments = listOf(makePhotoAttachment("photo_file_id_123")))
         val requestSlot = slot<Request<*>>()
-        coEvery { bot.execute(capture(requestSlot)) } returns mockk(relaxed = true) {
-            coEvery { messageId } returns sentMessageId
+        coEvery { bot.execute(capture(requestSlot)) } answers {
+            mockk<ContentMessage<*>>(relaxed = true) { every { messageId } returns sentMessageId }
         }
 
         val result = conversation.send(photoMessage)
@@ -87,8 +88,8 @@ class TelegramConversationSendTest {
     fun `sticker with telegram file_id sends SendStickerByFileId request`() = runTest {
         val stickerMessage = makeMessage(attachments = listOf(makeStickerAttachment("sticker_file_id_999")))
         val requestSlot = slot<Request<*>>()
-        coEvery { bot.execute(capture(requestSlot)) } returns mockk(relaxed = true) {
-            coEvery { messageId } returns sentMessageId
+        coEvery { bot.execute(capture(requestSlot)) } answers {
+            mockk<ContentMessage<*>>(relaxed = true) { every { messageId } returns sentMessageId }
         }
 
         val result = conversation.send(stickerMessage)
@@ -117,8 +118,8 @@ class TelegramConversationSendTest {
             ),
         )
         val requestSlot = slot<Request<*>>()
-        coEvery { bot.execute(capture(requestSlot)) } returns mockk(relaxed = true) {
-            coEvery { messageId } returns sentMessageId
+        coEvery { bot.execute(capture(requestSlot)) } answers {
+            mockk<ContentMessage<*>>(relaxed = true) { every { messageId } returns sentMessageId }
         }
 
         val result = conversation.send(photoMessage)

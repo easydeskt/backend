@@ -2,6 +2,7 @@ package me.soknight.easydesk.channel.telegram
 
 import io.ktor.http.ContentType
 import io.mockk.mockk
+import kotlinx.io.readByteArray
 import kotlinx.serialization.json.JsonPrimitive
 import me.soknight.easydesk.channel.api.Channel
 import me.soknight.easydesk.channel.api.model.Attachment
