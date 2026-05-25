@@ -18,7 +18,7 @@ import kotlin.time.Duration
  * - [Audio] — audio files with duration, title, and performer
  * - [Document] — generic files without extra metadata
  * - [Photo] — images with width and height
- * - [Sticker] — sticker images with width and height (Telegram only, forwarded via file_id)
+ * - [Sticker] — sticker images with width and height
  * - [Video] — video files with duration, width, and height
  * - [Voice] — voice messages with duration
  *
@@ -87,9 +87,7 @@ sealed interface Attachment : AttributesHolder, ChannelScoped {
     }
 
     /**
-     * A sticker attachment (Telegram only).
-     *
-     * Stickers are forwarded via `file_id` and are never downloaded to local storage.
+     * A sticker attachment.
      *
      * @property height sticker height in pixels
      * @property width sticker width in pixels

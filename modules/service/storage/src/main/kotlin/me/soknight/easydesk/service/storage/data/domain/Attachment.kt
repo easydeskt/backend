@@ -101,7 +101,7 @@ sealed class Attachment(
     /**
      * A generic file attachment without additional metadata.
      */
-    class Document(base: Attachment) : Attachment(base, base.kind), ChannelAttachment.Document
+    class Document(base: Attachment) : Attachment(base, Kind.DOCUMENT), ChannelAttachment.Document
 
     /** An image attachment. Reads `height` and `width` from [attributes]. */
     class Photo(base: Attachment) : Attachment(base, Kind.PHOTO), ChannelAttachment.Photo {
