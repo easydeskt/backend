@@ -60,6 +60,9 @@ internal class ChannelProviderDelegate(
     fun getBotForChannel(channel: TelegramChannel): TelegramBot? =
         activeBots.values.firstOrNull { it.first === channel }?.second
 
+    fun getChannel(serviceChannelId: Long): TelegramChannel? =
+        activeBots[serviceChannelId]?.first
+
     suspend fun start(scope: CoroutineScope, eventBus: EventBus) {
         val existing = channelRepository.findByBrand(TelegramBrand.identifier, enabledOnly = false)
         if (existing.isEmpty()) {

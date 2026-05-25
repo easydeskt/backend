@@ -72,7 +72,7 @@ class TelegramAgentReplyHandler(
         }
     }
 
-    private fun resolveConversation(conversationId: Long): Conversation? =
+    private suspend fun resolveConversation(conversationId: Long): Conversation? =
         conversationRegistry.getOrNull(conversationId) ?: run {
             logger.warn { "Conversation $conversationId not in live registry (post-restart?), reply dropped" }
             null

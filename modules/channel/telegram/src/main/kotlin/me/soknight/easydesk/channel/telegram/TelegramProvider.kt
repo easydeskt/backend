@@ -68,4 +68,6 @@ object TelegramProvider : ChannelProvider, KoinComponent {
 
     internal fun getBotForChannel(channel: TelegramChannel): TelegramBot? = delegate.getBotForChannel(channel)
 
+    internal fun getChannel(serviceChannelId: Long): TelegramChannel? = delegate.getChannel(serviceChannelId)
+
 }

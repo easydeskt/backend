@@ -1,6 +1,5 @@
 package me.soknight.easydesk.channel.vkontakte
 
-import me.soknight.easydesk.channel.api.Channel
 import me.soknight.easydesk.channel.api.ChannelBrand
 import me.soknight.easydesk.channel.api.dsl.Attributes
 import me.soknight.easydesk.channel.api.model.Conversation
@@ -18,16 +17,16 @@ class VKontakteConversationFactory : ConversationFactory {
     override val brand: ChannelBrand get() = VKontakteBrand
 
     override suspend fun restore(
-        channel: Channel,
+        serviceChannelId: Long,
         nativeId: String,
         attributes: Attributes,
     ): Conversation? {
-        val vkChannel = channel as? VKontakteChannel ?: return null
-        val bot = VKontakteProvider.getBotForChannel(vkChannel) ?: return null
+        val channel = VKontakteProvider.getChannel(serviceChannelId) ?: return null
+        val bot = VKontakteProvider.getBot(serviceChannelId) ?: return null
         return VKontakteConversation(
             attributes = attributes,
             bot = bot,
-            channel = vkChannel,
+            channel = channel,
             peerId = nativeId.toLongOrNull() ?: return null,
         )
     }

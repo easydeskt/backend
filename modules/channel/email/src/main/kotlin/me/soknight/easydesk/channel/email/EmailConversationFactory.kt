@@ -1,6 +1,5 @@
 package me.soknight.easydesk.channel.email
 
-import me.soknight.easydesk.channel.api.Channel
 import me.soknight.easydesk.channel.api.ChannelBrand
 import me.soknight.easydesk.channel.api.dsl.Attributes
 import me.soknight.easydesk.channel.api.model.Conversation
@@ -19,14 +18,14 @@ class EmailConversationFactory : ConversationFactory {
     override val brand: ChannelBrand get() = EmailBrand
 
     override suspend fun restore(
-        channel: Channel,
+        serviceChannelId: Long,
         nativeId: String,
         attributes: Attributes,
     ): Conversation? {
-        val emailChannel = channel as? EmailChannel ?: return null
+        val channel = EmailProvider.getChannel(serviceChannelId) ?: return null
         return EmailConversation(
             attributes = attributes,
-            channel = emailChannel,
+            channel = channel,
             recipientAddress = nativeId,
         )
     }

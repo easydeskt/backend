@@ -1,7 +1,6 @@
 package me.soknight.easydesk.channel.telegram
 
 import dev.inmo.tgbotapi.types.toChatId
-import me.soknight.easydesk.channel.api.Channel
 import me.soknight.easydesk.channel.api.ChannelBrand
 import me.soknight.easydesk.channel.api.dsl.Attributes
 import me.soknight.easydesk.channel.api.model.Conversation
@@ -20,16 +19,16 @@ class TelegramConversationFactory : ConversationFactory {
     override val brand: ChannelBrand get() = TelegramBrand
 
     override suspend fun restore(
-        channel: Channel,
+        serviceChannelId: Long,
         nativeId: String,
         attributes: Attributes,
     ): Conversation? {
-        val telegramChannel = channel as? TelegramChannel ?: return null
-        val bot = TelegramProvider.getBotForChannel(telegramChannel) ?: return null
+        val channel = TelegramProvider.getChannel(serviceChannelId) ?: return null
+        val bot = TelegramProvider.getBot(serviceChannelId) ?: return null
         return TelegramConversation(
             attributes = attributes,
             bot = bot,
-            channel = telegramChannel,
+            channel = channel,
             userChatId = nativeId.toLongOrNull()?.toChatId() ?: return null,
         )
     }

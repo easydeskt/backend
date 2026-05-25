@@ -89,6 +89,8 @@ object EmailProvider : ChannelProvider, KoinComponent {
         activeChannels.clear()
     }
 
+    internal fun getChannel(serviceChannelId: Long): EmailChannel? = activeChannels[serviceChannelId]
+
     private fun resolveEnvVars(text: String): String =
         Regex("""\$\{([^}]+)}""").replace(text) { result ->
             System.getenv(result.groupValues[1]) ?: result.value

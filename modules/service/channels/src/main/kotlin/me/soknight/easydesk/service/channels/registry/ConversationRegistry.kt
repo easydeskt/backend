@@ -1,14 +1,14 @@
 package me.soknight.easydesk.service.channels.registry
 
-import kotlinx.coroutines.runBlocking
 import me.soknight.easydesk.channel.api.model.Conversation
 import me.soknight.easydesk.channel.api.model.ConversationFactory
 import me.soknight.easydesk.service.channels.data.repository.ChannelIdentityRepository
+import me.soknight.easydesk.service.channels.data.repository.ConversationRepository
 import org.koin.core.annotation.Single
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * In-memory mapping from service `conversation.identifier` to the live channel:api [Conversation].
+ * In-memory mapping from service `conversation.id` to the live channel:api [Conversation].
  *
  * Populated by `MessageEventHandler` on every inbound `MessageEvent.Received`. On cache miss,
  * attempts to reconstruct the conversation from the database using the registered [ConversationFactory]
@@ -19,6 +19,7 @@ import java.util.concurrent.ConcurrentHashMap
 @Single
 class ConversationRegistry(
     private val channelIdentityRepository: ChannelIdentityRepository,
+    private val conversationRepository: ConversationRepository,
     private val factories: List<ConversationFactory>,
 ) {
 
@@ -32,26 +33,23 @@ class ConversationRegistry(
         map[serviceConversationId] = conversation
     }
 
-    operator fun get(serviceConversationId: Long): Conversation =
+    suspend operator fun get(serviceConversationId: Long): Conversation =
         requireNotNull(getOrNull(serviceConversationId)) {
             "no live Conversation cached or restorable for service conversation id $serviceConversationId"
         }
 
-    fun getOrNull(serviceConversationId: Long): Conversation? =
-        map[serviceConversationId] ?: restoreBlocking(serviceConversationId)
+    suspend fun getOrNull(serviceConversationId: Long): Conversation? =
+        map[serviceConversationId] ?: restore(serviceConversationId)
 
     // ── private helpers ───────────────────────────────────────────────────────
 
-    private fun restoreBlocking(serviceConversationId: Long): Conversation? =
-        runBlocking { restore(serviceConversationId) }
-
     private suspend fun restore(serviceConversationId: Long): Conversation? {
-        val identity = channelIdentityRepository.findById(serviceConversationId) ?: return null
+        val conv = conversationRepository.findById(serviceConversationId) ?: return null
+        val identity = channelIdentityRepository.findById(conv.identityId) ?: return null
         val factory = factories.firstOrNull {
             it.brand.identifier == identity.channelProvider.brand.identifier
         } ?: return null
-        val channel = identity.channelProvider.channels.firstOrNull() ?: return null
-        val conversation = factory.restore(channel, identity.nativeId, emptyMap()) ?: return null
+        val conversation = factory.restore(conv.channelId, identity.nativeId, conv.attributes) ?: return null
         map[serviceConversationId] = conversation
         return conversation
     }
