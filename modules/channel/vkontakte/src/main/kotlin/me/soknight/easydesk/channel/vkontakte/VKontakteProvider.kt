@@ -1,5 +1,8 @@
 package me.soknight.easydesk.channel.vkontakte
 
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.server.application.Application
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Instant
@@ -41,6 +44,12 @@ internal class VKontakteProviderBinding : ChannelProvider by VKontakteProvider
 object VKontakteProvider : ChannelProvider, KoinComponent {
 
     private val channelRepository by lazy { get<ChannelRepository>() }
+    private val httpClient = HttpClient(CIO) {
+        install(HttpTimeout) {
+            connectTimeoutMillis = 10_000
+            requestTimeoutMillis = 60_000
+        }
+    }
     private val json = Json { ignoreUnknownKeys = true }
     private val logger = getLogger()
 
@@ -124,7 +133,11 @@ object VKontakteProvider : ChannelProvider, KoinComponent {
                 val msg = event.message
                 val identity = VKontakteIdentity(msg.fromId)
                 val conversation = VKontakteConversation(bot = bot, channel = channel, peerId = msg.peerId)
+                val attachments = msg.attachments.mapNotNull {
+                    VkAttachmentMapper.map(it, channel, httpClient)
+                }
                 val message = VKontakteMessage(
+                    attachments = attachments,
                     conversation = conversation,
                     receiver = ChannelActor.System,
                     sender = identity,
