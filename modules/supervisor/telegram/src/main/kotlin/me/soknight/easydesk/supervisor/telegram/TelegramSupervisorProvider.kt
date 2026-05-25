@@ -75,6 +75,7 @@ class TelegramSupervisorProvider(
     override suspend fun stop() {
         pollingJob?.cancel()
         pollingJob = null
+        messageRelayHandler.stop()
     }
 
 }

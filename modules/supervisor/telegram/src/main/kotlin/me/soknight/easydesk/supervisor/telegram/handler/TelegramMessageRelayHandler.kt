@@ -21,6 +21,7 @@ import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.get
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.launch
@@ -60,6 +61,7 @@ class TelegramMessageRelayHandler(
     private val logger = getLogger()
 
     fun start(scope: CoroutineScope, bot: TelegramBot, eventBus: EventBus) {
+
         scope.launch {
             eventBus.events
                 .filterIsInstance<TicketMessageEvent.Recorded>()
@@ -68,11 +70,17 @@ class TelegramMessageRelayHandler(
                         if (event.message.senderKind == ActorKind.IDENTITY) {
                             relayClientMessage(bot, event)
                         }
+                    } catch (e: CancellationException) {
+                        throw e
                     } catch (e: Exception) {
                         logger.warn(e) { "Failed to relay client message: $event" }
                     }
                 }
         }
+    }
+
+    fun stop() {
+        httpClient.close()
     }
 
     private suspend fun relayClientMessage(bot: TelegramBot, event: TicketMessageEvent.Recorded) {
@@ -133,17 +141,13 @@ class TelegramMessageRelayHandler(
         val caption = if (message.plainText.isNullOrBlank()) "📩 [$displayName]" else null
         return runCatching {
             when (att.kind) {
-                Attachment.Kind.STICKER -> {
-                    val fileId = att.telegramFileId ?: return null
-                    bot.sendSticker(chatId, FileId(fileId), threadId = threadId)
-                }
-                Attachment.Kind.PHOTO -> {
+                Attachment.Kind.AUDIO -> {
                     val fileId = att.telegramFileId
                     if (fileId != null) {
-                        bot.sendPhoto(chatId, FileId(fileId), text = caption, threadId = threadId)
+                        bot.sendAudio(chatId, FileId(fileId), text = caption, threadId = threadId)
                     } else {
                         val bytes = downloadUrl(att) ?: return null
-                        bot.sendPhoto(chatId, bytes.asMultipartFile(att.fileName), text = caption, threadId = threadId)
+                        bot.sendAudio(chatId, bytes.asMultipartFile(att.fileName), text = caption, threadId = threadId)
                     }
                 }
                 Attachment.Kind.DOCUMENT -> {
@@ -159,6 +163,19 @@ class TelegramMessageRelayHandler(
                             bot.sendDocument(chatId, bytes.asMultipartFile(att.fileName), text = caption, threadId = threadId)
                         }
                     }
+                }
+                Attachment.Kind.PHOTO -> {
+                    val fileId = att.telegramFileId
+                    if (fileId != null) {
+                        bot.sendPhoto(chatId, FileId(fileId), text = caption, threadId = threadId)
+                    } else {
+                        val bytes = downloadUrl(att) ?: return null
+                        bot.sendPhoto(chatId, bytes.asMultipartFile(att.fileName), text = caption, threadId = threadId)
+                    }
+                }
+                Attachment.Kind.STICKER -> {
+                    val fileId = att.telegramFileId ?: return null
+                    bot.sendSticker(chatId, FileId(fileId), threadId = threadId)
                 }
                 Attachment.Kind.VIDEO -> {
                     val fileId = att.telegramFileId
@@ -178,17 +195,11 @@ class TelegramMessageRelayHandler(
                         bot.sendVoice(chatId, bytes.asMultipartFile(att.fileName), threadId = threadId)
                     }
                 }
-                Attachment.Kind.AUDIO -> {
-                    val fileId = att.telegramFileId
-                    if (fileId != null) {
-                        bot.sendAudio(chatId, FileId(fileId), text = caption, threadId = threadId)
-                    } else {
-                        val bytes = downloadUrl(att) ?: return null
-                        bot.sendAudio(chatId, bytes.asMultipartFile(att.fileName), text = caption, threadId = threadId)
-                    }
-                }
             }
-        }.onFailure { logger.warn(it) { "Failed to relay attachment '${att.fileName}' to topic" } }.getOrNull()
+        }.onFailure {
+            if (it is CancellationException) throw it
+            logger.warn(it) { "Failed to relay attachment '${att.fileName}' to topic" }
+        }.getOrNull()
     }
 
     private val TicketMessageAttachment.telegramFileId: String?
@@ -198,11 +209,17 @@ class TelegramMessageRelayHandler(
         get() = (attributes["vk.player_url"] as? JsonPrimitive)?.contentOrNull
 
     private suspend fun downloadUrl(att: TicketMessageAttachment): ByteArray? {
+        // vk.url / email.url are not yet populated at receive time;
+        // VK and email attachments without telegram.file_id will be silently dropped
+        // until VkAttachmentMapper and MimeMessageMapper store download URLs in attributes
         val url = (att.attributes["vk.url"] as? JsonPrimitive)?.contentOrNull
             ?: (att.attributes["email.url"] as? JsonPrimitive)?.contentOrNull
             ?: return null
         return runCatching { httpClient.get(url).body<ByteArray>() }
-            .onFailure { logger.warn(it) { "Failed to download attachment from $url" } }
+            .onFailure {
+                if (it is CancellationException) throw it
+                logger.warn(it) { "Failed to download attachment from $url" }
+            }
             .getOrNull()
     }
 
