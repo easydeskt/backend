@@ -28,8 +28,7 @@ class AttachmentStorageService {
         val ext = fileName.substringAfterLast('.', "bin")
         val relativePath = "${kind.key}/${UUID.randomUUID()}.$ext"
         val target = Path(rootPath, relativePath)
-        val parent = Path(target.toString().substringBeforeLast('/'))
-        SystemFileSystem.createDirectories(parent)
+        SystemFileSystem.createDirectories(Path(rootPath, kind.key))
         SystemFileSystem.sink(target).buffered().use { sink ->
             sink.write(source.readByteArray())
         }
