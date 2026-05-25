@@ -2,12 +2,23 @@ package me.soknight.easydesk.channel.telegram.internal
 
 import dev.inmo.tgbotapi.bot.TelegramBot
 import dev.inmo.tgbotapi.bot.ktor.telegramBot
+import dev.inmo.tgbotapi.extensions.api.files.downloadFile
 import dev.inmo.tgbotapi.extensions.behaviour_builder.buildBehaviourWithLongPolling
 import dev.inmo.tgbotapi.extensions.behaviour_builder.triggers_handling.onContentMessage
 import dev.inmo.tgbotapi.types.chat.PrivateChat
+import dev.inmo.tgbotapi.types.files.TelegramMediaFile
+import dev.inmo.tgbotapi.types.message.abstracts.ContentMessage
 import dev.inmo.tgbotapi.types.message.abstracts.OptionallyFromUserMessage
+import dev.inmo.tgbotapi.types.message.content.AnimationContent
+import dev.inmo.tgbotapi.types.message.content.AudioContent
+import dev.inmo.tgbotapi.types.message.content.DocumentContent
+import dev.inmo.tgbotapi.types.message.content.PhotoContent
+import dev.inmo.tgbotapi.types.message.content.StickerContent
 import dev.inmo.tgbotapi.types.message.content.TextContent
+import dev.inmo.tgbotapi.types.message.content.VideoContent
+import dev.inmo.tgbotapi.types.message.content.VoiceContent
 import dev.inmo.tgbotapi.types.toChatId
+import io.ktor.http.ContentType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.serialization.json.Json
@@ -15,6 +26,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import me.soknight.easydesk.channel.api.Channel
 import me.soknight.easydesk.channel.api.ChannelActor
+import me.soknight.easydesk.channel.telegram.TelegramAttachment
 import me.soknight.easydesk.channel.telegram.TelegramBrand
 import me.soknight.easydesk.channel.telegram.TelegramChannel
 import me.soknight.easydesk.channel.telegram.TelegramIdentity
@@ -28,6 +40,7 @@ import me.soknight.easydesk.core.logging.warn
 import me.soknight.easydesk.service.channels.data.repository.ChannelRepository
 import org.slf4j.Logger
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
 internal class ChannelProviderDelegate(
@@ -93,12 +106,14 @@ internal class ChannelProviderDelegate(
                         channel = channel,
                         userChatId = chat.id.toChatId(),
                     )
+                    val attachments = buildAttachments(message, bot, channel)
                     val telegramMessage = TelegramMessage(
                         conversation = conversation,
                         messageId = message.messageId,
                         plainText = (message.content as? TextContent)?.text,
                         receiver = ChannelActor.System,
                         sender = identity,
+                        attachments = attachments,
                     )
                     eventBus.publish(
                         TelegramMessageReceived(
@@ -120,5 +135,125 @@ internal class ChannelProviderDelegate(
         Regex("""\$\{([^}]+)}""").replace(json) { result ->
             System.getenv(result.groupValues[1]) ?: result.value
         }
+
+    private suspend fun buildAttachments(
+        message: ContentMessage<*>,
+        bot: TelegramBot,
+        channel: TelegramChannel,
+    ): List<TelegramAttachment> {
+        return when (val content = message.content) {
+            is AnimationContent -> {
+                val anim = content.media
+                val fileSize = anim.fileSize?.bytes?.toLong()
+                val bytes = downloadIfWithinLimit(bot, anim, fileSize)
+                val ct = anim.mimeType?.raw?.let { runCatching { ContentType.parse(it) }.getOrNull() }
+                    ?: ContentType.Image.GIF
+                listOf(TelegramAttachment.Document(
+                    fileId = anim.fileId.fileId,
+                    bytes = bytes,
+                    fileName = anim.fileName ?: "animation.gif",
+                    contentType = ct,
+                    fileSize = fileSize,
+                    channel = channel,
+                ))
+            }
+            is AudioContent -> {
+                val audio = content.media
+                val fileSize = audio.fileSize?.bytes?.toLong()
+                val bytes = downloadIfWithinLimit(bot, audio, fileSize)
+                listOf(TelegramAttachment.Audio(
+                    fileId = audio.fileId.fileId,
+                    bytes = bytes,
+                    fileName = audio.fileName ?: "audio.mp3",
+                    fileSize = fileSize,
+                    duration = (audio.duration ?: 0L).seconds,
+                    performer = audio.performer,
+                    title = audio.title,
+                    channel = channel,
+                ))
+            }
+            is DocumentContent -> {
+                val doc = content.media
+                val fileSize = doc.fileSize?.bytes?.toLong()
+                val bytes = downloadIfWithinLimit(bot, doc, fileSize)
+                val ct = doc.mimeType?.raw?.let { runCatching { ContentType.parse(it) }.getOrNull() }
+                    ?: ContentType.Application.OctetStream
+                listOf(TelegramAttachment.Document(
+                    fileId = doc.fileId.fileId,
+                    bytes = bytes,
+                    fileName = doc.fileName ?: "document",
+                    contentType = ct,
+                    fileSize = fileSize,
+                    channel = channel,
+                ))
+            }
+            is PhotoContent -> {
+                val photo = content.media
+                val fileSize = photo.fileSize?.bytes?.toLong()
+                val bytes = downloadIfWithinLimit(bot, photo, fileSize)
+                listOf(TelegramAttachment.Photo(
+                    fileId = photo.fileId.fileId,
+                    bytes = bytes,
+                    fileSize = fileSize,
+                    height = photo.height,
+                    width = photo.width,
+                    channel = channel,
+                ))
+            }
+            is StickerContent -> {
+                val sticker = content.media
+                listOf(TelegramAttachment.Sticker(
+                    fileId = sticker.fileId.fileId,
+                    fileSize = sticker.fileSize?.bytes?.toLong(),
+                    height = sticker.height,
+                    width = sticker.width,
+                    channel = channel,
+                ))
+            }
+            is VideoContent -> {
+                val vid = content.media
+                val fileSize = vid.fileSize?.bytes?.toLong()
+                val bytes = downloadIfWithinLimit(bot, vid, fileSize)
+                listOf(TelegramAttachment.Video(
+                    fileId = vid.fileId.fileId,
+                    bytes = bytes,
+                    fileName = vid.fileName ?: "video.mp4",
+                    fileSize = fileSize,
+                    duration = (vid.duration ?: 0L).seconds,
+                    height = vid.height,
+                    width = vid.width,
+                    channel = channel,
+                ))
+            }
+            is VoiceContent -> {
+                val voice = content.media
+                val fileSize = voice.fileSize?.bytes?.toLong()
+                val bytes = downloadIfWithinLimit(bot, voice, fileSize)
+                listOf(TelegramAttachment.Voice(
+                    fileId = voice.fileId.fileId,
+                    bytes = bytes,
+                    fileSize = fileSize,
+                    duration = (voice.duration ?: 0L).seconds,
+                    channel = channel,
+                ))
+            }
+            else -> emptyList()
+        }
+    }
+
+    private suspend fun downloadIfWithinLimit(
+        bot: TelegramBot,
+        file: TelegramMediaFile,
+        fileSize: Long?,
+    ): ByteArray? {
+        if (fileSize != null && fileSize > TELEGRAM_DOWNLOAD_LIMIT) return null
+        return runCatching { bot.downloadFile(file) }
+            .onFailure { logger.warn(it) { "Failed to download Telegram file ${file.fileId}" } }
+            .getOrNull()
+    }
+
+    companion object {
+        private const val TELEGRAM_DOWNLOAD_LIMIT = 20L * 1024L * 1024L
+    }
 
 }
