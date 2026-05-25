@@ -90,9 +90,6 @@ class TemplateRoutes(
                 if (req.humanName.isBlank()) {
                     return@post call.respond(HttpStatusCode.BadRequest, ServerErrorDto.BadRequest)
                 }
-                if (req.content == null) {
-                    return@post call.respond(HttpStatusCode.BadRequest, ServerErrorDto.BadRequest)
-                }
                 val template = templateRepository.create(
                     name = req.humanName.trim(),
                     content = req.content,

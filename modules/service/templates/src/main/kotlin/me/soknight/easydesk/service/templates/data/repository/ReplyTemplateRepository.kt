@@ -16,9 +16,9 @@ import kotlin.uuid.Uuid
  * including the complete attachment list. This matches the immutability of attachments
  * per row — editing the attachment set means full replacement.
  *
- * **Invariant** (enforced by every mutating method): `content` is non-blank or
- * `attachments` is non-empty (or both). The list size must not exceed
- * [ReplyTemplateAttachment.MAX_PER_TEMPLATE].
+ * **Invariant** (enforced by [update]): `content` is non-blank or `attachments` is non-empty
+ * (or both). [create] does not enforce this to allow draft templates that receive attachments
+ * via subsequent calls. The list size must not exceed [ReplyTemplateAttachment.MAX_PER_TEMPLATE].
  */
 interface ReplyTemplateRepository {
 
@@ -27,6 +27,8 @@ interface ReplyTemplateRepository {
      *
      * [name] must be unique; a duplicate insert will throw a database constraint violation.
      * Attachment order follows the index in [attachments] and is preserved across reads.
+     * `content` and `attachments` may both be absent at creation; the content/attachment
+     * invariant is enforced by [update], not here.
      *
      * @param name unique label for the template
      * @param content optional reply text, or `null` for an attachment-only template
@@ -34,8 +36,7 @@ interface ReplyTemplateRepository {
      * @param attachments ordered list of attachments (length 0..[me.soknight.easydesk.service.templates.data.domain.ReplyTemplateAttachment.MAX_PER_TEMPLATE])
      * @return the persisted [ReplyTemplate] with its generated [id][ReplyTemplate.identifier] and
      *   fully-populated [attachments][ReplyTemplate.attachments]
-     * @throws IllegalArgumentException if both `content` is blank and `attachments` is
-     *   empty, or if [attachments] exceeds [me.soknight.easydesk.service.templates.data.domain.ReplyTemplateAttachment.MAX_PER_TEMPLATE]
+     * @throws IllegalArgumentException if [attachments] exceeds [me.soknight.easydesk.service.templates.data.domain.ReplyTemplateAttachment.MAX_PER_TEMPLATE]
      */
     suspend fun create(
         name: String,

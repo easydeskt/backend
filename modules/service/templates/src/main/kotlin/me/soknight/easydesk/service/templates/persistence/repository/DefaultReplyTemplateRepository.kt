@@ -30,7 +30,10 @@ internal class DefaultReplyTemplateRepository : ReplyTemplateRepository {
         attachments: List<ReplyTemplateAttachmentDto>,
     ): ReplyTemplate =
         suspendTransaction {
-            requireValidPayload(content, attachments)
+            require(attachments.size <= ReplyTemplateAttachment.MAX_PER_TEMPLATE) {
+                "Reply template cannot have more than ${ReplyTemplateAttachment.MAX_PER_TEMPLATE} attachments " +
+                    "(got ${attachments.size})"
+            }
             val now = Clock.System.now()
 
             val template = ReplyTemplateEntity.new {
