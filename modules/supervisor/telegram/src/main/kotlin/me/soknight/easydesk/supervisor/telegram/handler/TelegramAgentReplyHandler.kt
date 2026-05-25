@@ -104,7 +104,10 @@ class TelegramAgentReplyHandler(
                     channelBrand = TelegramBrand.identifier,
                     attributes = JsonObject(attachment.attributes),
                 )
-            }.onFailure { if (it is CancellationException) throw it; logger.warn(it) { "Failed to persist attachment metadata" } }
+            }.onFailure {
+                if (it is CancellationException) throw it
+                logger.warn(it) { "Failed to persist attachment metadata" }
+            }
         }
         ticketRepository.updateReadMarker(relayed.ticketId, ticketMessage.identifier)
         eventBus.publish(TicketMessageEvent.Recorded(

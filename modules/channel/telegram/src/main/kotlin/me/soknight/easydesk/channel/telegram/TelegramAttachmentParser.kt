@@ -153,7 +153,10 @@ object TelegramAttachmentParser {
     ): ByteArray? {
         if (fileSize != null && fileSize > DOWNLOAD_LIMIT) return null
         return runCatching { bot.downloadFile(file) }
-            .onFailure { if (it is CancellationException) throw it; logger.warn(it) { "Failed to download Telegram file ${file.fileId}" } }
+            .onFailure {
+                if (it is CancellationException) throw it
+                logger.warn(it) { "Failed to download Telegram file ${file.fileId.fileId}" }
+            }
             .getOrNull()
     }
 
