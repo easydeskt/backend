@@ -16,6 +16,7 @@ import me.soknight.easydesk.channel.api.dsl.channelConfigSchema
 import me.soknight.easydesk.channel.vkontakte.config.VKontakteConfig
 import me.soknight.easydesk.channel.vkontakte.event.VKontakteMessageReceived
 import me.soknight.easydesk.channel.vkontakte.vk.VkBehaviourContext
+import me.soknight.easydesk.channel.vkontakte.vk.VkBot
 import me.soknight.easydesk.channel.vkontakte.vk.buildBehaviourWithCallbackApi
 import me.soknight.easydesk.channel.vkontakte.vk.buildBehaviourWithLongPolling
 import me.soknight.easydesk.channel.vkontakte.vk.onMessageNew
@@ -54,6 +55,7 @@ object VKontakteProvider : ChannelProvider, KoinComponent {
     private val logger = getLogger()
 
     private val activeChannels = ConcurrentHashMap<Long, VKontakteChannel>()
+    private val activeBots = ConcurrentHashMap<Long, VkBot>()
     private val lpJobs = ConcurrentHashMap<Long, Job>()
 
     override val brand get() = VKontakteBrand
@@ -89,6 +91,7 @@ object VKontakteProvider : ChannelProvider, KoinComponent {
             val bot = vkBot(config.groupId, config.token)
 
             activeChannels[serviceChannel.id] = channel
+            activeBots[serviceChannel.id] = bot
 
             // Long Poll takes priority; both enabled simultaneously is not supported
             when {
@@ -121,10 +124,14 @@ object VKontakteProvider : ChannelProvider, KoinComponent {
     override suspend fun stop() {
         logger.info { "Stopping ${lpJobs.size} VKontakte Long Poll job(s)" }
         lpJobs.values.forEach { it.cancel() }
+        activeBots.clear()
         lpJobs.clear()
         activeChannels.clear()
         httpClient.close()
     }
+
+    fun getBotForChannel(channel: VKontakteChannel): VkBot? =
+        activeBots.entries.firstOrNull { (key, _) -> activeChannels[key] === channel }?.value
 
     // ── private helpers ───────────────────────────────────────────────────────
 
