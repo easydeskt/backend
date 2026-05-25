@@ -13,4 +13,7 @@ dependencies {
     implementation(projects.modules.supervisor.api)
     implementation(libs.kotlinx.datetime)
     implementation(libs.ktgbotapi)
+
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.mockk)
 }
