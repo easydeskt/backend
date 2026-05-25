@@ -10,16 +10,14 @@ import kotlinx.serialization.json.JsonObject
 import me.soknight.easydesk.channel.api.ChannelActor
 import me.soknight.easydesk.channel.api.event.MessageEvent
 import me.soknight.easydesk.channel.api.model.Attachment
-import me.soknight.easydesk.channel.api.model.Attachment.Kind as AttachmentKind
 import me.soknight.easydesk.core.event.EventBus
 import me.soknight.easydesk.core.logging.getLogger
 import me.soknight.easydesk.service.channels.data.repository.ChannelIdentityRepository
 import me.soknight.easydesk.service.channels.data.repository.ChannelRepository
 import me.soknight.easydesk.service.channels.data.repository.ConversationRepository
 import me.soknight.easydesk.service.channels.registry.ConversationRegistry
-import me.soknight.easydesk.service.storage.data.repository.AttachmentRepository
-import me.soknight.easydesk.service.storage.data.service.AttachmentStorageService
 import me.soknight.easydesk.service.tickets.data.domain.ActorKind
+import me.soknight.easydesk.service.tickets.data.repository.TicketMessageAttachmentRepository
 import me.soknight.easydesk.service.tickets.data.repository.TicketMessageRepository
 import me.soknight.easydesk.service.tickets.data.repository.TicketRepository
 import me.soknight.easydesk.supervisor.api.event.TicketEvent
@@ -38,17 +36,16 @@ private val logger = getLogger("MessageEventHandler")
  *  4. Register the live [event.message.conversation][me.soknight.easydesk.channel.api.model.Conversation] in [ConversationRegistry].
  *  5. Find or create an OPEN/IN_PROGRESS [Ticket][me.soknight.easydesk.service.tickets.data.domain.Ticket].
  *  6. Deduplicate by `(ticketId, nativeId)` and persist a [TicketMessage][me.soknight.easydesk.service.tickets.data.domain.TicketMessage].
- *  7. Persist each inbound [Attachment] to `service:storage`.
+ *  7. Persist each inbound [Attachment]'s metadata to `ticket_message_attachments`.
  */
 @Single
 class MessageEventHandler(
-    private val attachmentRepository: AttachmentRepository,
-    private val attachmentStorageService: AttachmentStorageService,
     private val channelIdentityRepository: ChannelIdentityRepository,
     private val channelRepository: ChannelRepository,
     private val conversationRegistry: ConversationRegistry,
     private val conversationRepository: ConversationRepository,
     private val eventBus: EventBus,
+    private val ticketMessageAttachmentRepository: TicketMessageAttachmentRepository,
     private val ticketMessageRepository: TicketMessageRepository,
     private val ticketRepository: TicketRepository,
 ) {
@@ -112,41 +109,30 @@ class MessageEventHandler(
         )
 
         event.message.attachments.forEach { attachment ->
-            persistAttachment(attachment, message.identifier, event.message.conversation.channel)
+            persistAttachmentMetadata(attachment, message.identifier, brand.identifier)
         }
 
         eventBus.publish(TicketMessageEvent.Recorded(conversationId = conv.id, message = message))
     }
 
-    private suspend fun persistAttachment(
+    private suspend fun persistAttachmentMetadata(
         attachment: Attachment,
         messageId: Long,
-        channel: me.soknight.easydesk.channel.api.Channel,
+        channelBrand: String,
     ) {
         try {
-            val kind = attachment.toStorageKind()
-            val storagePath = attachmentStorageService.store(attachment.contentSource, attachment.fileName, kind)
-            attachmentRepository.create(
-                messageId = messageId,
-                kind = kind,
-                fileName = attachment.fileName,
-                contentType = attachment.contentType.toString(),
-                fileSize = attachment.fileSize,
-                storagePath = storagePath,
-                channel = channel,
+            ticketMessageAttachmentRepository.create(
+                messageId    = messageId,
+                kind         = attachment.kind,
+                fileName     = attachment.fileName,
+                contentType  = attachment.contentType,
+                fileSize     = attachment.fileSize,
+                channelBrand = channelBrand,
+                attributes   = JsonObject(attachment.attributes),
             )
         } catch (e: Exception) {
-            logger.error("Failed to persist attachment '${attachment.fileName}' for message $messageId", e)
+            logger.error("Failed to persist attachment metadata '${attachment.fileName}' for message $messageId", e)
         }
-    }
-
-    private fun Attachment.toStorageKind(): AttachmentKind = when (this) {
-        is Attachment.Audio    -> AttachmentKind.AUDIO
-        is Attachment.Document -> AttachmentKind.DOCUMENT
-        is Attachment.Photo    -> AttachmentKind.PHOTO
-        is Attachment.Sticker  -> AttachmentKind.STICKER
-        is Attachment.Video    -> AttachmentKind.VIDEO
-        is Attachment.Voice    -> AttachmentKind.VOICE
     }
 
 }
