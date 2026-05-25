@@ -9,7 +9,6 @@ import kotlin.test.assertEquals
 import kotlinx.coroutines.test.runTest
 import kotlinx.io.Buffer
 import kotlinx.io.Source
-import me.soknight.easydesk.channel.api.ChannelActor
 import me.soknight.easydesk.channel.api.dsl.Attributes
 import me.soknight.easydesk.channel.api.model.Attachment
 import me.soknight.easydesk.channel.api.model.Message

@@ -250,9 +250,9 @@ internal data class VkDocUploadResponse(
 
 @Serializable
 internal data class VkSavedDocResponse(
-    @SerialName("type") val type: String,
-    @SerialName("doc") val doc: VkSavedDoc? = null,
     @SerialName("audio_message") val audioMessage: VkSavedAudioMessage? = null,
+    @SerialName("doc") val doc: VkSavedDoc? = null,
+    @SerialName("type") val type: String,
 )
 
 @Serializable
