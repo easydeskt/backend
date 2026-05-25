@@ -5,8 +5,6 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Instant
 import kotlinx.io.Source
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonPrimitive
@@ -14,7 +12,7 @@ import kotlinx.serialization.json.long
 import me.soknight.easydesk.channel.api.Channel
 import me.soknight.easydesk.channel.api.dsl.Attributes
 import me.soknight.easydesk.channel.api.model.Attachment as ChannelAttachment
-import me.soknight.easydesk.core.KeyedEnum
+import me.soknight.easydesk.channel.api.model.Attachment.Kind
 import me.soknight.easydesk.service.storage.data.service.AttachmentStorageService
 
 /**
@@ -26,10 +24,10 @@ import me.soknight.easydesk.service.storage.data.service.AttachmentStorageServic
  * Media-specific metadata (duration, dimensions, performer, title) is stored in [attributes]
  * as JSON and exposed via type-safe getters on the typed subclasses.
  *
- * Typed subclasses ([Audio], [Document], [Photo], [Video], [Voice]) implement the corresponding
- * [ChannelAttachment] sub-interfaces, allowing them to be passed into the `channel:api` pipeline.
- * The base class does not directly implement [ChannelAttachment] because it is a `sealed interface`
- * whose direct implementations are restricted to the `channel:api` module.
+ * Typed subclasses ([Audio], [Document], [Photo], [Sticker], [Video], [Voice]) implement the
+ * corresponding [ChannelAttachment] sub-interfaces, allowing them to be passed into the
+ * `channel:api` pipeline. The base class does not directly implement [ChannelAttachment] because
+ * it is a `sealed interface` whose direct implementations are restricted to the `channel:api` module.
  *
  * @param identifier internal auto-generated identifier
  * @param kind media type category
@@ -102,8 +100,6 @@ sealed class Attachment(
 
     /**
      * A generic file attachment without additional metadata.
-     *
-     * Also used for [Kind.STICKER] since stickers carry no extra properties beyond [Document].
      */
     class Document(base: Attachment) : Attachment(base, base.kind), ChannelAttachment.Document
 
@@ -117,6 +113,19 @@ sealed class Attachment(
         override val width: Int
             get() = attributes["width"]?.jsonPrimitive?.int
                 ?: error("width missing in attributes for Photo id=$identifier")
+
+    }
+
+    /** A sticker attachment. Reads `height` and `width` from [attributes]. */
+    class Sticker(base: Attachment) : Attachment(base, Kind.STICKER), ChannelAttachment.Sticker {
+
+        override val height: Int
+            get() = attributes["height"]?.jsonPrimitive?.int
+                ?: error("height missing in attributes for Sticker id=$identifier")
+
+        override val width: Int
+            get() = attributes["width"]?.jsonPrimitive?.int
+                ?: error("width missing in attributes for Sticker id=$identifier")
 
     }
 
@@ -143,26 +152,6 @@ sealed class Attachment(
         override val duration: Duration
             get() = (attributes["duration_ms"]?.jsonPrimitive?.long
                 ?: error("duration_ms missing in attributes for Voice id=$identifier")).milliseconds
-
-    }
-
-    /**
-     * Media type category of an [Attachment].
-     *
-     * @param key stable lowercase key used for JSON serialization
-     */
-    @Serializable(with = Kind.Serializer::class)
-    enum class Kind(override val key: String) : KeyedEnum {
-
-        AUDIO   ("audio"),
-        DOCUMENT("document"),
-        PHOTO   ("photo"),
-        STICKER ("sticker"),
-        VIDEO   ("video"),
-        VOICE   ("voice"),
-        ;
-
-        object Serializer : KSerializer<Kind> by KeyedEnum.Companion.serializer()
 
     }
 

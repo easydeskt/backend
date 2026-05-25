@@ -4,6 +4,7 @@ import kotlinx.serialization.json.JsonObject
 import me.soknight.easydesk.channel.api.Channel
 import me.soknight.easydesk.channel.api.dsl.Attachments
 import me.soknight.easydesk.channel.api.model.Attachment as ChannelAttachment
+import me.soknight.easydesk.channel.api.model.Attachment.Kind
 import me.soknight.easydesk.service.storage.data.domain.Attachment
 
 /**
@@ -31,7 +32,7 @@ interface AttachmentRepository {
      */
     suspend fun create(
         messageId: Long,
-        kind: Attachment.Kind,
+        kind: Kind,
         fileName: String,
         contentType: String,
         fileSize: Long?,

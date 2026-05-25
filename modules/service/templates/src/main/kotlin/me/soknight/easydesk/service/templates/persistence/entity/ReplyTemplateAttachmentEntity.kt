@@ -3,7 +3,7 @@ package me.soknight.easydesk.service.templates.persistence.entity
 import io.ktor.http.*
 import kotlin.time.Instant
 import kotlinx.serialization.json.JsonObject
-import me.soknight.easydesk.service.storage.data.domain.Attachment.Kind
+import me.soknight.easydesk.channel.api.model.Attachment.Kind
 import me.soknight.easydesk.service.templates.data.domain.ReplyTemplateAttachment
 import me.soknight.easydesk.service.templates.persistence.table.ReplyTemplateAttachmentsTable
 import org.jetbrains.exposed.v1.core.dao.id.EntityID

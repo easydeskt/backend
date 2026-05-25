@@ -2,7 +2,7 @@ package me.soknight.easydesk.service.templates.data.dto
 
 import io.ktor.http.*
 import kotlinx.serialization.json.JsonObject
-import me.soknight.easydesk.service.storage.data.domain.Attachment
+import me.soknight.easydesk.channel.api.model.Attachment.Kind
 
 /**
  * Input value used when creating or replacing the attachment set of a [me.soknight.easydesk.service.templates.data.domain.ReplyTemplate].
@@ -16,7 +16,7 @@ import me.soknight.easydesk.service.storage.data.domain.Attachment
  * @see me.soknight.easydesk.service.templates.data.repository.ReplyTemplateRepository
  */
 data class ReplyTemplateAttachmentDto(
-    val kind: Attachment.Kind,
+    val kind: Kind,
     val storagePath: String,
     val fileName: String,
     val contentType: ContentType,

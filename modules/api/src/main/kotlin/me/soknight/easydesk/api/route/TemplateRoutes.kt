@@ -20,9 +20,9 @@ import kotlinx.serialization.json.JsonPrimitive
 import me.soknight.easydesk.api.auth.ApiAuthenticator
 import me.soknight.easydesk.api.response.toAttachmentResponse
 import me.soknight.easydesk.api.response.toResponse
+import me.soknight.easydesk.channel.api.model.Attachment.Kind
 import me.soknight.easydesk.core.model.dto.ServerErrorDto
 import me.soknight.easydesk.core.server.ServerModule
-import me.soknight.easydesk.service.storage.data.domain.Attachment
 import me.soknight.easydesk.service.storage.data.service.AttachmentStorageService
 import me.soknight.easydesk.service.templates.data.domain.ReplyTemplateAttachment
 import me.soknight.easydesk.service.templates.data.dto.ReplyTemplateAttachmentDto
@@ -193,7 +193,7 @@ class TemplateRoutes(
                     return@post call.respond(HttpStatusCode.UnprocessableEntity, ServerErrorDto.UnprocessableEntity)
                 }
 
-                var kind: Attachment.Kind? = null
+                var kind: Kind? = null
                 var fileName: String? = null
                 var contentType: ContentType? = null
                 var fileBytes: ByteArray? = null
@@ -201,7 +201,7 @@ class TemplateRoutes(
                 call.receiveMultipart().forEachPart { part ->
                     when {
                         part is PartData.FormItem && part.name == "kind" ->
-                            kind = Attachment.Kind.entries.firstOrNull { it.key.equals(part.value, ignoreCase = true) }
+                            kind = Kind.entries.firstOrNull { it.key.equals(part.value, ignoreCase = true) }
                         part is PartData.FileItem && part.name == "file" -> {
                             fileName = part.originalFileName ?: "attachment"
                             contentType = part.contentType ?: ContentType.Application.OctetStream
@@ -215,13 +215,13 @@ class TemplateRoutes(
                     ?: return@post call.respond(HttpStatusCode.BadRequest, ServerErrorDto.BadRequest)
                 val resolvedBytes = fileBytes
                     ?: return@post call.respond(HttpStatusCode.BadRequest, ServerErrorDto.BadRequest)
-                val resolvedKind = kind ?: Attachment.Kind.DOCUMENT
+                val resolvedKind = kind ?: Kind.DOCUMENT
                 val resolvedContentType = contentType ?: ContentType.Application.OctetStream
 
                 val source = Buffer().also { it.write(resolvedBytes) }
                 val storagePath = storageService.store(source, resolvedFileName, resolvedKind)
 
-                val imageAttributes: JsonObject = if (resolvedKind == Attachment.Kind.PHOTO) {
+                val imageAttributes: JsonObject = if (resolvedKind == Kind.PHOTO) {
                     try {
                         val stream = ImageIO.createImageInputStream(ByteArrayInputStream(resolvedBytes))
                         val readers = ImageIO.getImageReaders(stream)

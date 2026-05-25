@@ -5,8 +5,8 @@ import kotlin.time.Instant
 import kotlinx.serialization.json.JsonObject
 import me.soknight.easydesk.channel.api.Channel
 import me.soknight.easydesk.channel.api.model.Attachment as ChannelAttachment
+import me.soknight.easydesk.channel.api.model.Attachment.Kind
 import me.soknight.easydesk.service.storage.data.domain.Attachment
-import me.soknight.easydesk.service.storage.data.domain.Attachment.Kind
 import me.soknight.easydesk.service.storage.data.service.AttachmentStorageService
 import me.soknight.easydesk.service.storage.persistence.table.AttachmentsTable
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
@@ -33,7 +33,7 @@ internal class AttachmentEntity(id: EntityID<Long>) : LongEntity(id) {
             Kind.AUDIO    -> Attachment.Audio(base)
             Kind.DOCUMENT -> Attachment.Document(base)
             Kind.PHOTO    -> Attachment.Photo(base)
-            Kind.STICKER  -> Attachment.Document(base)
+            Kind.STICKER  -> Attachment.Sticker(base)
             Kind.VIDEO    -> Attachment.Video(base)
             Kind.VOICE    -> Attachment.Voice(base)
         }

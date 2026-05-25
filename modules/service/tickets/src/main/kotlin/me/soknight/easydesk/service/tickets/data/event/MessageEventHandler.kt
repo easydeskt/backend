@@ -10,13 +10,13 @@ import kotlinx.serialization.json.JsonObject
 import me.soknight.easydesk.channel.api.ChannelActor
 import me.soknight.easydesk.channel.api.event.MessageEvent
 import me.soknight.easydesk.channel.api.model.Attachment
+import me.soknight.easydesk.channel.api.model.Attachment.Kind as AttachmentKind
 import me.soknight.easydesk.core.event.EventBus
 import me.soknight.easydesk.core.logging.getLogger
 import me.soknight.easydesk.service.channels.data.repository.ChannelIdentityRepository
 import me.soknight.easydesk.service.channels.data.repository.ChannelRepository
 import me.soknight.easydesk.service.channels.data.repository.ConversationRepository
 import me.soknight.easydesk.service.channels.registry.ConversationRegistry
-import me.soknight.easydesk.service.storage.data.domain.Attachment as StoredAttachment
 import me.soknight.easydesk.service.storage.data.repository.AttachmentRepository
 import me.soknight.easydesk.service.storage.data.service.AttachmentStorageService
 import me.soknight.easydesk.service.tickets.data.domain.ActorKind
@@ -140,12 +140,13 @@ class MessageEventHandler(
         }
     }
 
-    private fun Attachment.toStorageKind(): StoredAttachment.Kind = when (this) {
-        is Attachment.Audio    -> StoredAttachment.Kind.AUDIO
-        is Attachment.Document -> StoredAttachment.Kind.DOCUMENT
-        is Attachment.Photo    -> StoredAttachment.Kind.PHOTO
-        is Attachment.Video    -> StoredAttachment.Kind.VIDEO
-        is Attachment.Voice    -> StoredAttachment.Kind.VOICE
+    private fun Attachment.toStorageKind(): AttachmentKind = when (this) {
+        is Attachment.Audio    -> AttachmentKind.AUDIO
+        is Attachment.Document -> AttachmentKind.DOCUMENT
+        is Attachment.Photo    -> AttachmentKind.PHOTO
+        is Attachment.Sticker  -> AttachmentKind.STICKER
+        is Attachment.Video    -> AttachmentKind.VIDEO
+        is Attachment.Voice    -> AttachmentKind.VOICE
     }
 
 }

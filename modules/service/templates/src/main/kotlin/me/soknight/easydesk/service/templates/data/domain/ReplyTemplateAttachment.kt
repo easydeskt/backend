@@ -3,7 +3,7 @@ package me.soknight.easydesk.service.templates.data.domain
 import io.ktor.http.*
 import kotlin.time.Instant
 import kotlinx.serialization.json.JsonObject
-import me.soknight.easydesk.service.storage.data.domain.Attachment
+import me.soknight.easydesk.channel.api.model.Attachment.Kind
 import me.soknight.easydesk.supervisor.api.model.ReplyTemplate
 
 /**
@@ -32,7 +32,7 @@ data class ReplyTemplateAttachment(
     override val contentType: ContentType,
     override val fileName: String,
     override val fileSize: Long?,
-    val attachmentKind: Attachment.Kind,
+    val attachmentKind: Kind,
     val storagePath: String,
     val attributes: JsonObject,
     val createdAt: Instant,

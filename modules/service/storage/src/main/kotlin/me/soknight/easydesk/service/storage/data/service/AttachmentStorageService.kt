@@ -6,7 +6,7 @@ import kotlinx.io.buffered
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
 import kotlinx.io.readByteArray
-import me.soknight.easydesk.service.storage.data.domain.Attachment
+import me.soknight.easydesk.channel.api.model.Attachment.Kind
 import org.koin.core.annotation.Single
 
 /**
@@ -24,7 +24,7 @@ class AttachmentStorageService {
     fun openSource(storagePath: String): Source =
         SystemFileSystem.source(Path(rootPath, storagePath)).buffered()
 
-    fun store(source: Source, fileName: String, kind: Attachment.Kind): String {
+    fun store(source: Source, fileName: String, kind: Kind): String {
         val ext = fileName.substringAfterLast('.', "bin")
         val relativePath = "${kind.key}/${UUID.randomUUID()}.$ext"
         val target = Path(rootPath, relativePath)

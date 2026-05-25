@@ -2,8 +2,8 @@ package me.soknight.easydesk.service.storage.persistence.table
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import me.soknight.easydesk.channel.api.model.Attachment.Kind
 import me.soknight.easydesk.core.persistence.pgEnum
-import me.soknight.easydesk.service.storage.data.domain.Attachment
 import org.jetbrains.exposed.v1.core.dao.id.LongIdTable
 import org.jetbrains.exposed.v1.datetime.timestamp
 import org.jetbrains.exposed.v1.json.jsonb
@@ -15,7 +15,7 @@ internal object AttachmentsTable : LongIdTable("attachments") {
     val createdAt   = timestamp("created_at")
     val fileName    = varchar("file_name", 512)
     val fileSize    = long("file_size").nullable()
-    val kind        = pgEnum<Attachment.Kind>("kind", "attachment_kind")
+    val kind        = pgEnum<Kind>("kind", "attachment_kind")
     val messageId   = long("message_id")
     val storagePath = varchar("storage_path", 1024)
 
