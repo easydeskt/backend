@@ -5,8 +5,9 @@ package me.soknight.easydesk.supervisor.telegram.handler
 import dev.inmo.tgbotapi.bot.TelegramBot
 import dev.inmo.tgbotapi.extensions.behaviour_builder.BehaviourContext
 import dev.inmo.tgbotapi.extensions.behaviour_builder.triggers_handling.onContentMessage
-import dev.inmo.tgbotapi.types.message.abstracts.ContentMessage
+import dev.inmo.tgbotapi.types.message.abstracts.CommonMessage
 import dev.inmo.tgbotapi.types.message.abstracts.OptionallyFromUserMessage
+import dev.inmo.tgbotapi.types.message.content.MessageContent
 import dev.inmo.tgbotapi.types.message.content.TextContent
 import dev.inmo.tgbotapi.utils.extensions.threadIdOrNull
 import kotlinx.coroutines.CancellationException
@@ -67,7 +68,7 @@ class TelegramAgentReplyHandler(
         }
     }
 
-    internal suspend fun handleAgentMessage(message: ContentMessage<*>, bot: TelegramBot) {
+    internal suspend fun handleAgentMessage(message: CommonMessage<MessageContent>, bot: TelegramBot) {
         message.threadIdOrNull ?: return
         val replyTo = message.replyTo ?: return
         val relayed = relayedMessageRegistry.getOrNull(replyTo.messageId.long) ?: return

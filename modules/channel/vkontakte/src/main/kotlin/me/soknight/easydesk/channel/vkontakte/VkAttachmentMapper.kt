@@ -4,6 +4,8 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.http.ContentType
+import io.ktor.http.fromFileExtension
+import io.ktor.http.isSuccess
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CancellationException
 import kotlinx.io.Buffer
@@ -55,7 +57,10 @@ object VkAttachmentMapper {
     // ── private helpers ───────────────────────────────────────────────────────
 
     private suspend fun download(httpClient: HttpClient, url: String): ByteArray? =
-        runCatching { httpClient.get(url).body<ByteArray>() }
+        runCatching {
+            val response = httpClient.get(url)
+            if (!response.status.isSuccess()) null else response.body<ByteArray>()
+        }
             .onFailure { if (it is CancellationException) throw it }
             .getOrNull()
 
@@ -84,8 +89,9 @@ object VkAttachmentMapper {
     ): Attachment? {
         val url = vkAttachment.url ?: return null
         val bytes = download(httpClient, url) ?: return null
-        val contentType = ContentType.defaultForFileExtension(vkAttachment.ext)
-            .takeUnless { it == ContentType.Any }
+        val contentType = ContentType.fromFileExtension(vkAttachment.ext)
+            .firstOrNull()
+            ?.takeUnless { it == ContentType.Any }
             ?: ContentType.Application.OctetStream
         val fileName = "${vkAttachment.title}.${vkAttachment.ext}".trimStart('.')
         return object : Attachment.Document {

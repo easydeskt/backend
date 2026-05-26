@@ -27,7 +27,7 @@ import kotlin.time.Duration
  *
  * @see Message
  */
-sealed interface Attachment : AttributesHolder, ChannelScoped {
+interface Attachment : AttributesHolder, ChannelScoped {
 
     /** A [Source] that provides the raw file bytes. Read-once. */
     val contentSource: Source

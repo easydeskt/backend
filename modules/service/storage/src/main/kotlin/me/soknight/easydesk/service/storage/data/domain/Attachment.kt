@@ -42,7 +42,7 @@ import me.soknight.easydesk.service.storage.data.service.AttachmentStorageServic
  */
 sealed class Attachment(
     val identifier: Long,
-    val kind: Kind,
+    open val kind: Kind,
     val fileName: String,
     val contentType: ContentType,
     val fileSize: Long?,
