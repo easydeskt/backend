@@ -12,11 +12,13 @@ import dev.inmo.tgbotapi.requests.send.media.SendStickerByFileId
 import dev.inmo.tgbotapi.types.ChatIdentifier
 import dev.inmo.tgbotapi.types.MessageId
 import dev.inmo.tgbotapi.types.MessageThreadId
+import dev.inmo.tgbotapi.types.message.abstracts.ContentMessage
 import dev.inmo.tgbotapi.types.toChatId
 import io.ktor.http.ContentType
 import io.mockk.clearMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import kotlin.test.BeforeTest
@@ -62,16 +64,16 @@ class TelegramMessageRelayHandlerTest {
     @BeforeTest
     fun setUp() {
         clearMocks(bot)
-        coEvery { bot.execute(any()) } returns mockk(relaxed = true) {
-            coEvery { messageId } returns sentMessageId
+        coEvery { bot.execute(any<Request<*>>()) } answers {
+            mockk<ContentMessage<*>>(relaxed = true) { every { messageId } returns sentMessageId }
         }
     }
 
     @Test
     fun `should_sendStickerWithFileId_when_stickerAttachment`() = runTest {
         val requestSlot = slot<Request<*>>()
-        coEvery { bot.execute(capture(requestSlot)) } returns mockk(relaxed = true) {
-            coEvery { messageId } returns sentMessageId
+        coEvery { bot.execute(capture(requestSlot)) } answers {
+            mockk<ContentMessage<*>>(relaxed = true) { every { messageId } returns sentMessageId }
         }
 
         val att = makeAttachment(Attachment.Kind.STICKER, attributes = mapOf("telegram.file_id" to JsonPrimitive("sticker_abc")))
@@ -91,14 +93,14 @@ class TelegramMessageRelayHandlerTest {
         val result = handler.relaySingleAttachment(bot, chatId, threadId, att, "User", makeMessage(plainText = null))
 
         assertNull(result)
-        coVerify(exactly = 0) { bot.execute(any()) }
+        coVerify(exactly = 0) { bot.execute(any<Request<*>>()) }
     }
 
     @Test
     fun `should_sendPhotoWithFileId_when_photoHasTelegramFileId`() = runTest {
         val requestSlot = slot<Request<*>>()
-        coEvery { bot.execute(capture(requestSlot)) } returns mockk(relaxed = true) {
-            coEvery { messageId } returns sentMessageId
+        coEvery { bot.execute(capture(requestSlot)) } answers {
+            mockk<ContentMessage<*>>(relaxed = true) { every { messageId } returns sentMessageId }
         }
 
         val att = makeAttachment(Attachment.Kind.PHOTO, attributes = mapOf("telegram.file_id" to JsonPrimitive("photo_xyz")))
@@ -114,8 +116,8 @@ class TelegramMessageRelayHandlerTest {
     @Test
     fun `should_sendDocumentLinkText_when_documentHasVkPlayerUrl`() = runTest {
         val requestSlot = slot<Request<*>>()
-        coEvery { bot.execute(capture(requestSlot)) } returns mockk(relaxed = true) {
-            coEvery { messageId } returns sentMessageId
+        coEvery { bot.execute(capture(requestSlot)) } answers {
+            mockk<ContentMessage<*>>(relaxed = true) { every { messageId } returns sentMessageId }
         }
 
         val att = makeAttachment(
@@ -135,8 +137,8 @@ class TelegramMessageRelayHandlerTest {
     @Test
     fun `should_sendDocumentWithFileId_when_documentHasTelegramFileId`() = runTest {
         val requestSlot = slot<Request<*>>()
-        coEvery { bot.execute(capture(requestSlot)) } returns mockk(relaxed = true) {
-            coEvery { messageId } returns sentMessageId
+        coEvery { bot.execute(capture(requestSlot)) } answers {
+            mockk<ContentMessage<*>>(relaxed = true) { every { messageId } returns sentMessageId }
         }
 
         val att = makeAttachment(
@@ -155,11 +157,6 @@ class TelegramMessageRelayHandlerTest {
 
     @Test
     fun `should_sendDocumentAsBytes_when_documentHasEmailUrl`() = runTest {
-        val requestSlot = slot<Request<*>>()
-        coEvery { bot.execute(capture(requestSlot)) } returns mockk(relaxed = true) {
-            coEvery { messageId } returns sentMessageId
-        }
-
         // email.url present — download needed, but our httpClient will fail in unit tests
         // so the result should be null (download failure → null → skip)
         val att = makeAttachment(
@@ -172,14 +169,14 @@ class TelegramMessageRelayHandlerTest {
 
         // download fails → null returned, no bot.execute called
         assertNull(result)
-        coVerify(exactly = 0) { bot.execute(any()) }
+        coVerify(exactly = 0) { bot.execute(any<Request<*>>()) }
     }
 
     @Test
     fun `should_includeCaptionWithDisplayName_when_messageHasNoText`() = runTest {
         val requestSlot = slot<Request<*>>()
-        coEvery { bot.execute(capture(requestSlot)) } returns mockk(relaxed = true) {
-            coEvery { messageId } returns sentMessageId
+        coEvery { bot.execute(capture(requestSlot)) } answers {
+            mockk<ContentMessage<*>>(relaxed = true) { every { messageId } returns sentMessageId }
         }
 
         val att = makeAttachment(Attachment.Kind.PHOTO, attributes = mapOf("telegram.file_id" to JsonPrimitive("photo_id")))
@@ -194,8 +191,8 @@ class TelegramMessageRelayHandlerTest {
     @Test
     fun `should_sendNullCaption_when_messageHasNonBlankText`() = runTest {
         val requestSlot = slot<Request<*>>()
-        coEvery { bot.execute(capture(requestSlot)) } returns mockk(relaxed = true) {
-            coEvery { messageId } returns sentMessageId
+        coEvery { bot.execute(capture(requestSlot)) } answers {
+            mockk<ContentMessage<*>>(relaxed = true) { every { messageId } returns sentMessageId }
         }
 
         val att = makeAttachment(Attachment.Kind.PHOTO, attributes = mapOf("telegram.file_id" to JsonPrimitive("photo_id")))

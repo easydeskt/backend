@@ -5,8 +5,10 @@ package me.soknight.easydesk.supervisor.telegram
 import dev.inmo.tgbotapi.bot.TelegramBot
 import dev.inmo.tgbotapi.types.MessageId
 import dev.inmo.tgbotapi.types.MessageThreadId
+import dev.inmo.tgbotapi.types.RawChatId
 import dev.inmo.tgbotapi.types.UserId
-import dev.inmo.tgbotapi.types.message.abstracts.ContentMessage
+import dev.inmo.tgbotapi.types.message.abstracts.CommonForumContentMessage
+import dev.inmo.tgbotapi.types.message.abstracts.CommonMessage
 import dev.inmo.tgbotapi.types.message.abstracts.Message
 import dev.inmo.tgbotapi.types.message.abstracts.OptionallyFromUserMessage
 import dev.inmo.tgbotapi.types.message.content.TextContent
@@ -18,10 +20,14 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
+import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.time.Instant
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.JsonObject
 import me.soknight.easydesk.channel.api.dsl.MessageBuilder
 import me.soknight.easydesk.channel.api.model.Attachment
 import me.soknight.easydesk.channel.api.model.Conversation
@@ -32,6 +38,7 @@ import me.soknight.easydesk.service.agents.domain.Agent
 import me.soknight.easydesk.service.agents.repository.AgentRepository
 import me.soknight.easydesk.service.channels.registry.ConversationRegistry
 import me.soknight.easydesk.service.tickets.data.domain.ActorKind
+import me.soknight.easydesk.service.tickets.data.domain.TicketMessage
 import me.soknight.easydesk.service.tickets.data.repository.TicketMessageAttachmentRepository
 import me.soknight.easydesk.service.tickets.data.repository.TicketMessageRepository
 import me.soknight.easydesk.service.tickets.data.repository.TicketRepository
@@ -41,6 +48,10 @@ import me.soknight.easydesk.supervisor.telegram.handler.TelegramAgentReplyHandle
 import me.soknight.easydesk.supervisor.telegram.registry.TelegramRelayedMessageRegistry
 
 class TelegramAgentReplyHandlerTest {
+
+    // Created BEFORE bot to prime Kotlin reflection cache for TicketMessage before BusinessChatId is instrumented,
+    // avoiding MockK's recording-state loop triggered by getOrCreateKotlinClass + getChatIdWithBusinessConnectionId.
+    private val ticketMessageResult = mockk<TicketMessage>(relaxed = true)
 
     private val bot = mockk<TelegramBot>(relaxed = true)
     private val agentRepository = mockk<AgentRepository>(relaxed = true)
@@ -82,12 +93,14 @@ class TelegramAgentReplyHandlerTest {
 
     @BeforeTest
     fun setUp() {
+        mockkObject(TelegramAttachmentParser)
         clearMocks(
             bot, agentRepository, conversationRegistry, eventBus,
             relayedMessageRegistry, ticketMessageAttachmentRepository,
-            ticketMessageRepository, ticketRepository,
+            ticketMessageRepository, ticketMessageResult, ticketRepository,
         )
-        coEvery {
+        coEvery { TelegramAttachmentParser.parse(any(), any(), any()) } returns emptyList()
+        every {
             relayedMessageRegistry.getOrNull(replyMessageId.long)
         } returns TelegramRelayedMessageRegistry.RelayedMessage(
             conversationId = conversationId,
@@ -97,13 +110,17 @@ class TelegramAgentReplyHandlerTest {
             agentRepository.findBySupervisorBinding(TelegramSupervisorBrand, userId.toString())
         } returns agent
         coEvery { conversationRegistry.getOrNull(conversationId) } returns conversation
-        coEvery { conversation.send(any(), any<suspend MessageBuilder.() -> Unit>()) } returns mockk(relaxed = true)
-        coEvery { ticketMessageRepository.create(any(), any(), any(), any(), any(), any(), any(), any()) } returns mockk(relaxed = true)
+        coEvery { conversation.send(any<String>(), any<MessageBuilder.() -> Unit>()) } returns mockk(relaxed = true)
+    }
+
+    @AfterTest
+    fun tearDown() {
+        unmockkObject(TelegramAttachmentParser)
     }
 
     @Test
     fun `should_forwardTextMessage_when_agentSendsTextReply`() = runTest {
-        val message = makeTextMessage("Hello from agent", threadId = MessageThreadId(7L))
+        val message = makeThreadedMessage("Hello from agent")
 
         handler.handleAgentMessage(message, bot)
 
@@ -116,83 +133,108 @@ class TelegramAgentReplyHandlerTest {
     }
 
     @Test
-    fun `should_recordTicketMessage_when_agentSendsTextReply`() = runTest {
-        val message = makeTextMessage("Reply text", threadId = MessageThreadId(7L))
-
-        handler.handleAgentMessage(message, bot)
-
-        coVerify(exactly = 1) {
-            ticketMessageRepository.create(
-                ticketId = ticketId,
-                nativeId = any(),
-                senderKind = ActorKind.AGENT,
-                senderAgentId = agentId,
-                senderIdentityId = null,
-                plainText = "Reply text",
-                inReplyToNativeId = replyMessageId.long.toString(),
-                platformTimestamp = any(),
-            )
+    fun `should_recordTicketMessage_when_agentSendsTextReply`() {
+        var capturedTicketId: Long? = null
+        var capturedSenderKind: ActorKind? = null
+        var capturedSenderAgentId: Uuid? = null
+        var capturedPlainText: String? = null
+        var capturedInReplyTo: String? = null
+        // Delegation wrapper avoids coEvery recording state entirely, preventing MockK's
+        // BusinessChatId value-class reflection loop triggered by anyValue(TicketMessage::class).
+        val capturingRepo = object : TicketMessageRepository by ticketMessageRepository {
+            override suspend fun create(
+                ticketId: Long,
+                nativeId: String,
+                senderKind: ActorKind,
+                senderAgentId: Uuid?,
+                senderIdentityId: Long?,
+                plainText: String?,
+                inReplyToNativeId: String?,
+                platformTimestamp: Instant,
+                attributes: JsonObject,
+            ): TicketMessage {
+                capturedTicketId = ticketId
+                capturedSenderKind = senderKind
+                capturedSenderAgentId = senderAgentId
+                capturedPlainText = plainText
+                capturedInReplyTo = inReplyToNativeId
+                return ticketMessageResult
+            }
         }
+        val localHandler = TelegramAgentReplyHandler(
+            agentRepository = agentRepository,
+            config = config,
+            conversationRegistry = conversationRegistry,
+            eventBus = eventBus,
+            relayedMessageRegistry = relayedMessageRegistry,
+            ticketMessageAttachmentRepository = ticketMessageAttachmentRepository,
+            ticketMessageRepository = capturingRepo,
+            ticketRepository = ticketRepository,
+        )
+        runTest {
+            val message = makeThreadedMessage("Reply text")
+            localHandler.handleAgentMessage(message, bot)
+        }
+        assertEquals(ticketId, capturedTicketId)
+        assertEquals(ActorKind.AGENT, capturedSenderKind)
+        assertEquals(agentId, capturedSenderAgentId)
+        assertEquals("Reply text", capturedPlainText)
+        assertEquals(replyMessageId.long.toString(), capturedInReplyTo)
     }
 
     @Test
     fun `should_skipMessage_when_noThreadId`() = runTest {
-        val message = makeTextMessage("Hello", threadId = null)
+        val message = makeNonThreadedMessage("Hello")
 
         handler.handleAgentMessage(message, bot)
 
-        coVerify(exactly = 0) { conversation.send(any(), any<suspend MessageBuilder.() -> Unit>()) }
+        coVerify(exactly = 0) { conversation.send(any<String>(), any<MessageBuilder.() -> Unit>()) }
     }
 
     @Test
     fun `should_skipMessage_when_replyToIsNotRelayed`() = runTest {
-        coEvery { relayedMessageRegistry.getOrNull(any()) } returns null
-        val message = makeTextMessage("Hello", threadId = MessageThreadId(7L))
+        every { relayedMessageRegistry.getOrNull(any()) } returns null
+        val message = makeThreadedMessage("Hello")
 
         handler.handleAgentMessage(message, bot)
 
-        coVerify(exactly = 0) { conversation.send(any(), any<suspend MessageBuilder.() -> Unit>()) }
+        coVerify(exactly = 0) { conversation.send(any<String>(), any<MessageBuilder.() -> Unit>()) }
     }
 
     @Test
-    fun `should_skipMessage_when_agentNotFound`() = runTest {
+    fun `should_skipMessage_when_agentNotFound`() {
         coEvery { agentRepository.findBySupervisorBinding(any(), any()) } returns null
-        val message = makeTextMessage("Hello", threadId = MessageThreadId(7L))
-
-        handler.handleAgentMessage(message, bot)
-
-        coVerify(exactly = 0) { conversation.send(any(), any<suspend MessageBuilder.() -> Unit>()) }
-    }
-
-    @Test
-    fun `should_skipMessage_when_textIsBlankAndNoAttachments`() = runTest {
-        mockkObject(TelegramAttachmentParser)
-        try {
-            coEvery { TelegramAttachmentParser.parse(any(), any(), any()) } returns emptyList()
-            val message = makeTextMessage("   ", threadId = MessageThreadId(7L))
+        runTest {
+            val message = makeThreadedMessage("Hello")
 
             handler.handleAgentMessage(message, bot)
 
-            coVerify(exactly = 0) { conversation.send(any(), any<suspend MessageBuilder.() -> Unit>()) }
-        } finally {
-            unmockkObject(TelegramAttachmentParser)
+            coVerify(exactly = 0) { conversation.send(any<String>(), any<MessageBuilder.() -> Unit>()) }
         }
     }
 
     @Test
-    fun `should_forwardMessageAndPersistAttachment_when_attachmentsPresent`() = runTest {
-        mockkObject(TelegramAttachmentParser)
-        try {
-            val photoAttachment = TelegramAttachment.Photo(
-                fileId = "file-123",
-                bytes = byteArrayOf(1, 2, 3),
-                fileSize = 3L,
-                height = 100,
-                width = 200,
-                channel = handler.supervisorChannel,
-            )
-            coEvery { TelegramAttachmentParser.parse(any(), any(), any()) } returns listOf(photoAttachment)
-            val message = makeTextMessage("Caption text", threadId = MessageThreadId(7L))
+    fun `should_skipMessage_when_textIsBlankAndNoAttachments`() = runTest {
+        val message = makeThreadedMessage("   ")
+
+        handler.handleAgentMessage(message, bot)
+
+        coVerify(exactly = 0) { conversation.send(any<String>(), any<MessageBuilder.() -> Unit>()) }
+    }
+
+    @Test
+    fun `should_forwardMessageAndPersistAttachment_when_attachmentsPresent`() {
+        val photoAttachment = TelegramAttachment.Photo(
+            fileId = "file-123",
+            bytes = byteArrayOf(1, 2, 3),
+            fileSize = 3L,
+            height = 100,
+            width = 200,
+            channel = handler.supervisorChannel,
+        )
+        coEvery { TelegramAttachmentParser.parse(any(), any(), any()) } returns listOf(photoAttachment)
+        runTest {
+            val message = makeThreadedMessage("Caption text")
 
             handler.handleAgentMessage(message, bot)
 
@@ -208,26 +250,39 @@ class TelegramAgentReplyHandlerTest {
                     attributes = any(),
                 )
             }
-        } finally {
-            unmockkObject(TelegramAttachmentParser)
         }
     }
 
     // -------------- HELPERS ------------------------------------------------------------------------------------------
 
-    private fun makeTextMessage(text: String, threadId: MessageThreadId?): ContentMessage<TextContent> {
+    /**
+     * Creates a mock forum content message (has a non-null threadId, triggering the relay path).
+     * Uses [CommonForumContentMessage] so that [threadId] is a direct member MockK can intercept,
+     * avoiding the need for mockkStatic on the threadIdOrNull extension.
+     */
+    private fun makeThreadedMessage(text: String): CommonForumContentMessage<TextContent> {
         val content = mockk<TextContent>(relaxed = true) { every { this@mockk.text } returns text }
         val replyToMessage = mockk<Message>(relaxed = true) {
             every { messageId } returns replyMessageId
         }
         val userMock = mockk<dev.inmo.tgbotapi.types.chat.CommonUser>(relaxed = true) {
-            every { id } returns UserId(userId)
+            every { id } returns UserId(RawChatId(userId))
         }
-        return mockk<ContentMessage<TextContent>>(relaxed = true) {
+        return mockk<CommonForumContentMessage<TextContent>>(relaxed = true) {
             every { this@mockk.content } returns content
-            every { this@mockk.threadId } returns threadId
+            every { this@mockk.threadId } returns MessageThreadId(7L)
             every { replyTo } returns replyToMessage
             every { (this@mockk as OptionallyFromUserMessage).from } returns userMock
+        }
+    }
+
+    /**
+     * Creates a mock without a thread (threadIdOrNull returns null), triggering the early-return guard.
+     */
+    private fun makeNonThreadedMessage(text: String): CommonMessage<TextContent> {
+        val content = mockk<TextContent>(relaxed = true) { every { this@mockk.text } returns text }
+        return mockk<CommonMessage<TextContent>>(relaxed = true) {
+            every { this@mockk.content } returns content
         }
     }
 
