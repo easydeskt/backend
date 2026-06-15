@@ -5,9 +5,15 @@ package me.soknight.easydesk.service.tickets.data.event
 import kotlin.uuid.ExperimentalUuidApi
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.io.Buffer
+import kotlinx.io.readByteArray
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import me.soknight.easydesk.channel.api.ChannelActor
 import me.soknight.easydesk.channel.api.event.MessageEvent
 import me.soknight.easydesk.channel.api.model.Attachment
@@ -17,6 +23,7 @@ import me.soknight.easydesk.service.channels.data.repository.ChannelIdentityRepo
 import me.soknight.easydesk.service.channels.data.repository.ChannelRepository
 import me.soknight.easydesk.service.channels.data.repository.ConversationRepository
 import me.soknight.easydesk.service.channels.registry.ConversationRegistry
+import me.soknight.easydesk.service.storage.data.service.AttachmentStorageService
 import me.soknight.easydesk.service.tickets.data.domain.ActorKind
 import me.soknight.easydesk.service.tickets.data.repository.TicketMessageAttachmentRepository
 import me.soknight.easydesk.service.tickets.data.repository.TicketMessageRepository
@@ -41,6 +48,7 @@ private val logger = getLogger("MessageEventHandler")
  */
 @Single
 class MessageEventHandler(
+    private val attachmentStorageService: AttachmentStorageService,
     private val channelIdentityRepository: ChannelIdentityRepository,
     private val channelRepository: ChannelRepository,
     private val conversationRegistry: ConversationRegistry,
@@ -117,12 +125,30 @@ class MessageEventHandler(
         eventBus.publish(TicketMessageEvent.Recorded(conversationId = conv.id, message = message))
     }
 
-    private suspend fun persistAttachmentMetadata(
+    private suspend fun maybeStoreLocally(attachment: Attachment): Map<String, JsonElement> {
+        if (attachment.attributes.containsKey("telegram.file_id") || attachment.attributes.containsKey("vk.url")) {
+            return emptyMap()
+        }
+        val storagePath = runCatching {
+            withContext(Dispatchers.IO) {
+                val bytes = attachment.contentSource.readByteArray()
+                if (bytes.isEmpty()) return@withContext null
+                attachmentStorageService.store(Buffer().also { it.write(bytes) }, attachment.fileName, attachment.kind)
+            }
+        }.onFailure { e ->
+            if (e is CancellationException) throw e
+            logger.warn("Could not store bytes locally for attachment '${attachment.fileName}': ${e.message}")
+        }.getOrNull() ?: return emptyMap()
+        return mapOf("local.storage_path" to JsonPrimitive(storagePath))
+    }
+
+    internal suspend fun persistAttachmentMetadata(
         attachment: Attachment,
         messageId: Long,
         channelBrand: String,
     ) {
         try {
+            val localAttrs = maybeStoreLocally(attachment)
             ticketMessageAttachmentRepository.create(
                 messageId    = messageId,
                 kind         = attachment.kind,
@@ -130,7 +156,7 @@ class MessageEventHandler(
                 contentType  = attachment.contentType,
                 fileSize     = attachment.fileSize,
                 channelBrand = channelBrand,
-                attributes   = JsonObject(attachment.attributes),
+                attributes   = JsonObject(attachment.attributes + localAttrs),
             )
         } catch (e: Exception) {
             if (e is CancellationException) throw e
