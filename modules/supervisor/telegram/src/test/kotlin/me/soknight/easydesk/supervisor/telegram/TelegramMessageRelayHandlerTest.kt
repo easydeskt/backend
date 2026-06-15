@@ -30,10 +30,12 @@ import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.test.runTest
+import kotlinx.io.Buffer
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import me.soknight.easydesk.channel.api.model.Attachment
 import me.soknight.easydesk.service.channels.data.repository.ChannelIdentityRepository
+import me.soknight.easydesk.service.storage.data.service.AttachmentStorageService
 import me.soknight.easydesk.service.tickets.data.domain.TicketMessageAttachment
 import me.soknight.easydesk.service.tickets.data.repository.TicketMessageAttachmentRepository
 import me.soknight.easydesk.service.tickets.data.repository.TicketRepository
@@ -46,11 +48,13 @@ import me.soknight.easydesk.supervisor.telegram.registry.TelegramTopicRegistry
 
 class TelegramMessageRelayHandlerTest {
 
+    private val attachmentStorageService = mockk<AttachmentStorageService>(relaxed = true)
     private val bot = mockk<TelegramBot>(relaxed = true)
     private val chatId: ChatIdentifier = 100500L.toChatId()
     private val threadId = MessageThreadId(42L)
 
     private val handler = TelegramMessageRelayHandler(
+        attachmentStorageService = attachmentStorageService,
         channelIdentityRepository = mockk<ChannelIdentityRepository>(relaxed = true),
         config = mockk<TelegramSupervisorConfig>(relaxed = true),
         relayedMessageRegistry = mockk<TelegramRelayedMessageRegistry>(relaxed = true),
@@ -156,20 +160,26 @@ class TelegramMessageRelayHandlerTest {
     }
 
     @Test
-    fun `should_sendDocumentAsBytes_when_documentHasEmailUrl`() = runTest {
-        // email.url present — download needed, but our httpClient will fail in unit tests
-        // so the result should be null (download failure → null → skip)
+    fun `should_sendDocumentAsBytes_when_documentHasLocalStoragePath`() = runTest {
+        val requestSlot = slot<Request<*>>()
+        coEvery { bot.execute(capture(requestSlot)) } answers {
+            mockk<ContentMessage<*>>(relaxed = true) { every { messageId } returns sentMessageId }
+        }
+        val docBytes = byteArrayOf(1, 2, 3, 4)
+        every { attachmentStorageService.openSource("email/abc.pdf") } returns
+            Buffer().also { it.write(docBytes) }
+
         val att = makeAttachment(
             Attachment.Kind.DOCUMENT,
             fileName = "report.pdf",
-            attributes = mapOf("email.url" to JsonPrimitive("http://invalid-host-for-test/report.pdf")),
+            attributes = mapOf("local.storage_path" to JsonPrimitive("email/abc.pdf")),
         )
 
-        val result = handler.relaySingleAttachment(bot, chatId, threadId, att, "Client", makeMessage(plainText = null))
+        handler.relaySingleAttachment(bot, chatId, threadId, att, "Client", makeMessage(plainText = null))
 
-        // download fails → null returned, no bot.execute called
-        assertNull(result)
-        coVerify(exactly = 0) { bot.execute(any<Request<*>>()) }
+        val request = requestSlot.captured
+        assertIs<SendDocumentData>(request)
+        assertEquals(threadId, request.threadId)
     }
 
     @Test

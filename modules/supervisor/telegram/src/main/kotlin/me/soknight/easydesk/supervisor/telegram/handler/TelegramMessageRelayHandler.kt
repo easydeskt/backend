@@ -23,8 +23,11 @@ import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.get
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.io.readByteArray
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import me.soknight.easydesk.channel.api.model.Attachment
@@ -32,6 +35,7 @@ import me.soknight.easydesk.core.event.EventBus
 import me.soknight.easydesk.core.logging.getLogger
 import me.soknight.easydesk.core.logging.warn
 import me.soknight.easydesk.service.channels.data.repository.ChannelIdentityRepository
+import me.soknight.easydesk.service.storage.data.service.AttachmentStorageService
 import me.soknight.easydesk.service.tickets.data.domain.TicketMessageAttachment
 import me.soknight.easydesk.service.tickets.data.repository.TicketMessageAttachmentRepository
 import me.soknight.easydesk.service.tickets.data.repository.TicketRepository
@@ -46,6 +50,7 @@ import org.koin.core.annotation.Single
 
 @Single
 class TelegramMessageRelayHandler(
+    private val attachmentStorageService: AttachmentStorageService,
     private val channelIdentityRepository: ChannelIdentityRepository,
     private val config: TelegramSupervisorConfig,
     private val relayedMessageRegistry: TelegramRelayedMessageRegistry,
@@ -209,16 +214,25 @@ class TelegramMessageRelayHandler(
         get() = (attributes["vk.player_url"] as? JsonPrimitive)?.contentOrNull
 
     private suspend fun downloadUrl(att: TicketMessageAttachment): ByteArray? {
-        // TODO: vk.url and email.url are not populated by their respective mappers — cross-channel relay of VK/email attachments is silently dropped until those mappers are updated
-        val url = (att.attributes["vk.url"] as? JsonPrimitive)?.contentOrNull
-            ?: (att.attributes["email.url"] as? JsonPrimitive)?.contentOrNull
-            ?: return null
-        return runCatching { httpClient.get(url).body<ByteArray>() }
-            .onFailure {
+        val vkUrl = (att.attributes["vk.url"] as? JsonPrimitive)?.contentOrNull
+        if (vkUrl != null) {
+            return runCatching { httpClient.get(vkUrl).body<ByteArray>() }
+                .onFailure {
+                    if (it is CancellationException) throw it
+                    logger.warn(it) { "Failed to download attachment from $vkUrl" }
+                }
+                .getOrNull()
+        }
+        val localPath = (att.attributes["local.storage_path"] as? JsonPrimitive)?.contentOrNull
+        if (localPath != null) {
+            return runCatching {
+                withContext(Dispatchers.IO) { attachmentStorageService.openSource(localPath).readByteArray() }
+            }.onFailure {
                 if (it is CancellationException) throw it
-                logger.warn(it) { "Failed to download attachment from $url" }
-            }
-            .getOrNull()
+                logger.warn(it) { "Failed to read local attachment at $localPath" }
+            }.getOrNull()
+        }
+        return null
     }
 
 }
