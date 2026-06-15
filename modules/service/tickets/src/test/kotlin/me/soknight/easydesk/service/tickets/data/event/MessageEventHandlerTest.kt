@@ -47,30 +47,18 @@ class MessageEventHandlerTest {
     )
 
     @Test
-    fun `should_storeLocally_when_attachmentHasNeitherFileIdNorVkUrl`() = runTest {
-        val bytes = byteArrayOf(1, 2, 3, 4, 5)
+    fun `should_notStoreLocally_when_attachmentBytesEmpty`() = runTest {
         val attachment = mockk<Attachment>(relaxed = true) {
             every { attributes } returns emptyMap()
-            every { contentSource } returns Buffer().also { it.write(bytes) }
-            every { fileName } returns "report.pdf"
-            every { kind } returns Attachment.Kind.DOCUMENT
-            every { contentType } returns ContentType.Application.Pdf
-            every { fileSize } returns bytes.size.toLong()
+            every { contentSource } returns Buffer() // empty — VK Video case
+            every { fileName } returns "video.mp4"
+            every { kind } returns Attachment.Kind.VIDEO
+            every { contentType } returns ContentType("video", "mp4")
         }
-        var capturedAttributes: JsonObject? = null
-        coEvery {
-            ticketMessageAttachmentRepository.create(
-                messageId = any(), kind = any(), fileName = any(),
-                contentType = any(), fileSize = any(), channelBrand = any(), attributes = any(),
-            )
-        } answers { capturedAttributes = arg(6); mockk(relaxed = true) }
-        every { attachmentStorageService.store(any(), any(), any()) } returns "document/uuid.pdf"
 
-        handler.persistAttachmentMetadata(attachment, 1L, "email")
+        handler.persistAttachmentMetadata(attachment, 1L, "vkontakte")
 
-        verify(exactly = 1) { attachmentStorageService.store(any(), "report.pdf", Attachment.Kind.DOCUMENT) }
-        val storagePath = (capturedAttributes?.get("local.storage_path") as? JsonPrimitive)?.content
-        assertEquals("document/uuid.pdf", storagePath)
+        verify(exactly = 0) { attachmentStorageService.store(any(), any(), any()) }
     }
 
     @Test
@@ -98,18 +86,30 @@ class MessageEventHandlerTest {
     }
 
     @Test
-    fun `should_notStoreLocally_when_attachmentBytesEmpty`() = runTest {
+    fun `should_storeLocally_when_attachmentHasNeitherFileIdNorVkUrl`() = runTest {
+        val bytes = byteArrayOf(1, 2, 3, 4, 5)
         val attachment = mockk<Attachment>(relaxed = true) {
             every { attributes } returns emptyMap()
-            every { contentSource } returns Buffer() // empty — VK Video case
-            every { fileName } returns "video.mp4"
-            every { kind } returns Attachment.Kind.VIDEO
-            every { contentType } returns ContentType("video", "mp4")
+            every { contentSource } returns Buffer().also { it.write(bytes) }
+            every { fileName } returns "report.pdf"
+            every { kind } returns Attachment.Kind.DOCUMENT
+            every { contentType } returns ContentType.Application.Pdf
+            every { fileSize } returns bytes.size.toLong()
         }
+        var capturedAttributes: JsonObject? = null
+        coEvery {
+            ticketMessageAttachmentRepository.create(
+                messageId = any(), kind = any(), fileName = any(),
+                contentType = any(), fileSize = any(), channelBrand = any(), attributes = any(),
+            )
+        } answers { capturedAttributes = arg(6); mockk(relaxed = true) }
+        every { attachmentStorageService.store(any(), any(), any()) } returns "document/uuid.pdf"
 
-        handler.persistAttachmentMetadata(attachment, 1L, "vkontakte")
+        handler.persistAttachmentMetadata(attachment, 1L, "email")
 
-        verify(exactly = 0) { attachmentStorageService.store(any(), any(), any()) }
+        verify(exactly = 1) { attachmentStorageService.store(any(), "report.pdf", Attachment.Kind.DOCUMENT) }
+        val storagePath = (capturedAttributes?.get("local.storage_path") as? JsonPrimitive)?.content
+        assertEquals("document/uuid.pdf", storagePath)
     }
 
 }
