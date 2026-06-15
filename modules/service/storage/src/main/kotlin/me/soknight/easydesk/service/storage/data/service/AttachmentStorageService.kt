@@ -7,19 +7,14 @@ import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
 import kotlinx.io.readByteArray
 import me.soknight.easydesk.channel.api.model.Attachment.Kind
+import me.soknight.easydesk.service.storage.config.StorageConfig
 import org.koin.core.annotation.Single
 
-/**
- * Reads and writes attachment bytes on local FS by opaque [storagePath].
- *
- * `rootPath` is provided by the `app` Koin module from `application.yaml`. For now,
- * a placeholder default is used — the real wiring is part of a separate config task.
- */
+/** Reads and writes attachment bytes on local FS by opaque [storagePath]. */
 @Single
-class AttachmentStorageService {
+class AttachmentStorageService(config: StorageConfig) {
 
-    // TODO: inject `rootPath: Path` from application config when storage config lands
-    private val rootPath: Path = Path("./data/attachments")
+    private val rootPath: Path = config.rootPath
 
     fun openSource(storagePath: String): Source =
         SystemFileSystem.source(Path(rootPath, storagePath)).buffered()
