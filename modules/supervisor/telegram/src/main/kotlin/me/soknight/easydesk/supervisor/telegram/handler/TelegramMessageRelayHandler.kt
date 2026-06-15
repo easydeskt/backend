@@ -112,7 +112,7 @@ class TelegramMessageRelayHandler(
         if (attachments.isEmpty()) {
             val text = "📩 [$displayName]\n${message.plainText ?: "(сообщение без текста)"}"
             val sent = bot.sendMessage(chatId, text, threadId = threadId, replyMarkup = readMarkupButton)
-            relayedMessageRegistry.register(sent.messageId.long, event.conversationId, message.ticketId)
+            relayedMessageRegistry.register(sent.messageId.long, event.conversationId, message.ticketId, message.nativeId)
             return
         }
 
@@ -130,7 +130,7 @@ class TelegramMessageRelayHandler(
         }
 
         firstSupervisorMessageId?.let { msgId ->
-            relayedMessageRegistry.register(msgId, event.conversationId, message.ticketId)
+            relayedMessageRegistry.register(msgId, event.conversationId, message.ticketId, message.nativeId)
             bot.sendMessage(chatId, "✓", threadId = threadId, replyMarkup = readMarkupButton)
         }
     }

@@ -7,6 +7,7 @@ import org.koin.core.annotation.Single
 class TelegramRelayedMessageRegistry {
 
     data class RelayedMessage(
+        val clientNativeId: String?,
         val conversationId: Long,
         val ticketId: Long,
     )
@@ -15,8 +16,12 @@ class TelegramRelayedMessageRegistry {
 
     fun getOrNull(supervisorMessageId: Long): RelayedMessage? = map[supervisorMessageId]
 
-    fun register(supervisorMessageId: Long, conversationId: Long, ticketId: Long) {
-        map[supervisorMessageId] = RelayedMessage(conversationId = conversationId, ticketId = ticketId)
+    fun register(supervisorMessageId: Long, conversationId: Long, ticketId: Long, clientNativeId: String?) {
+        map[supervisorMessageId] = RelayedMessage(
+            clientNativeId = clientNativeId,
+            conversationId = conversationId,
+            ticketId = ticketId,
+        )
     }
 
 }
