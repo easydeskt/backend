@@ -103,6 +103,7 @@ class TelegramAgentReplyHandlerTest {
         every {
             relayedMessageRegistry.getOrNull(replyMessageId.long)
         } returns TelegramRelayedMessageRegistry.RelayedMessage(
+            clientNativeId = null,
             conversationId = conversationId,
             ticketId = ticketId,
         )
