@@ -175,4 +175,74 @@ class VkAttachmentMapperTest {
         assertNull(result)
     }
 
+    @Test
+    fun `should_haveVkUrlInAttributes_when_audioMessageMapped`() = runTest {
+        val httpClient = mockHttpClient(byteArrayOf(10, 20, 30))
+        val vkAudioMessage = VkAttachment.AudioMessage(
+            duration = 7,
+            id = 55,
+            linkMp3 = "https://cdn.vk.com/voice.mp3",
+            ownerId = 42L,
+        )
+
+        val result = VkAttachmentMapper.map(vkAudioMessage, channel, httpClient)
+
+        val vkUrl = (result?.attributes?.get("vk.url") as? JsonPrimitive)?.content
+        assertEquals("https://cdn.vk.com/voice.mp3", vkUrl)
+    }
+
+    @Test
+    fun `should_haveVkUrlInAttributes_when_documentAttachmentMapped`() = runTest {
+        val httpClient = mockHttpClient(byteArrayOf(1, 2, 3))
+        val vkDocument = VkAttachment.Document(
+            ext = "pdf",
+            id = 77,
+            ownerId = 42L,
+            title = "Report",
+            url = "https://cdn.vk.com/report.pdf",
+        )
+
+        val result = VkAttachmentMapper.map(vkDocument, channel, httpClient)
+
+        val vkUrl = (result?.attributes?.get("vk.url") as? JsonPrimitive)?.content
+        assertEquals("https://cdn.vk.com/report.pdf", vkUrl)
+    }
+
+    @Test
+    fun `should_haveVkUrlInAttributes_when_graffitiMapped`() = runTest {
+        val httpClient = mockHttpClient(byteArrayOf(5, 6, 7))
+        val vkGraffiti = VkAttachment.Graffiti(
+            id = 11,
+            ownerId = 42L,
+            url = "https://cdn.vk.com/graffiti.png",
+        )
+
+        val result = VkAttachmentMapper.map(vkGraffiti, channel, httpClient)
+
+        val vkUrl = (result?.attributes?.get("vk.url") as? JsonPrimitive)?.content
+        assertEquals("https://cdn.vk.com/graffiti.png", vkUrl)
+    }
+
+    @Test
+    fun `should_haveVkUrlInAttributes_when_photoAttachmentMapped`() = runTest {
+        val httpClient = mockHttpClient(byteArrayOf(1, 2, 3))
+        val vkPhoto = VkAttachment.Photo(
+            id = 100,
+            ownerId = 42L,
+            sizes = listOf(
+                VkAttachment.Photo.Size(
+                    height = 200,
+                    type = "x",
+                    url = "https://cdn.vk.com/photo.jpg",
+                    width = 300,
+                ),
+            ),
+        )
+
+        val result = VkAttachmentMapper.map(vkPhoto, channel, httpClient)
+
+        val vkUrl = (result?.attributes?.get("vk.url") as? JsonPrimitive)?.content
+        assertEquals("https://cdn.vk.com/photo.jpg", vkUrl)
+    }
+
 }

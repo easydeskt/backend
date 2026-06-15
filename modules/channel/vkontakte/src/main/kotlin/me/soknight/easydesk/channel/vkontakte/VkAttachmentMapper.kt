@@ -72,7 +72,7 @@ object VkAttachmentMapper {
         val bytes = download(httpClient, vkAttachment.linkMp3) ?: return null
         val duration = vkAttachment.duration.seconds
         return object : Attachment.Voice {
-            override val attributes: Attributes = emptyMap()
+            override val attributes: Attributes = mapOf("vk.url" to JsonPrimitive(vkAttachment.linkMp3))
             override val channel: Channel = channel
             override val contentSource: Source get() = Buffer().also { it.write(bytes) }
             override val contentType: ContentType = ContentType.Audio.MPEG
@@ -95,7 +95,7 @@ object VkAttachmentMapper {
             ?: ContentType.Application.OctetStream
         val fileName = "${vkAttachment.title}.${vkAttachment.ext}".trimStart('.')
         return object : Attachment.Document {
-            override val attributes: Attributes = emptyMap()
+            override val attributes: Attributes = mapOf("vk.url" to JsonPrimitive(url))
             override val channel: Channel = channel
             override val contentSource: Source get() = Buffer().also { it.write(bytes) }
             override val contentType: ContentType = contentType
@@ -111,7 +111,7 @@ object VkAttachmentMapper {
     ): Attachment? {
         val bytes = download(httpClient, vkAttachment.url) ?: return null
         return object : Attachment.Photo {
-            override val attributes: Attributes = emptyMap()
+            override val attributes: Attributes = mapOf("vk.url" to JsonPrimitive(vkAttachment.url))
             override val channel: Channel = channel
             override val contentSource: Source get() = Buffer().also { it.write(bytes) }
             override val contentType: ContentType = ContentType.Image.PNG
@@ -132,7 +132,7 @@ object VkAttachmentMapper {
         val height = best.height
         val width = best.width
         return object : Attachment.Photo {
-            override val attributes: Attributes = emptyMap()
+            override val attributes: Attributes = mapOf("vk.url" to JsonPrimitive(best.url))
             override val channel: Channel = channel
             override val contentSource: Source get() = Buffer().also { it.write(bytes) }
             override val contentType: ContentType = ContentType.Image.JPEG
