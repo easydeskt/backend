@@ -103,7 +103,7 @@ class TelegramAgentReplyHandlerTest {
         every {
             relayedMessageRegistry.getOrNull(replyMessageId.long)
         } returns TelegramRelayedMessageRegistry.RelayedMessage(
-            clientNativeId = null,
+            clientNativeId = "client-native-42",
             conversationId = conversationId,
             ticketId = ticketId,
         )
@@ -127,7 +127,7 @@ class TelegramAgentReplyHandlerTest {
 
         coVerify(exactly = 1) {
             conversation.send(
-                replyToNativeId = replyMessageId.long.toString(),
+                replyToNativeId = "client-native-42",
                 block = any(),
             )
         }
@@ -239,7 +239,7 @@ class TelegramAgentReplyHandlerTest {
 
             handler.handleAgentMessage(message, bot)
 
-            coVerify(exactly = 1) { conversation.send(replyToNativeId = replyMessageId.long.toString(), block = any()) }
+            coVerify(exactly = 1) { conversation.send(replyToNativeId = "client-native-42", block = any()) }
             coVerify(exactly = 1) {
                 ticketMessageAttachmentRepository.create(
                     messageId = any(),

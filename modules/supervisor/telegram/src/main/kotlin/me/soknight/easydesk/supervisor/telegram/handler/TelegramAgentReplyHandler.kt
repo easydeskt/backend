@@ -79,8 +79,7 @@ class TelegramAgentReplyHandler(
         val parsedAttachments = TelegramAttachmentParser.parse(message, bot, supervisorChannel)
         if (agentText.isNullOrBlank() && parsedAttachments.isEmpty()) return
         val conversation = resolveConversation(relayed.conversationId) ?: return
-        // TODO: replyToNativeId refers to the supervisor topic message ID, not the client-chat message ID; client-side reply threading requires storing the original client nativeId
-        conversation.send(replyToNativeId = replyTo.messageId.long.toString()) {
+        conversation.send(replyToNativeId = relayed.clientNativeId) {
             plainText = agentText
             if (parsedAttachments.isNotEmpty()) {
                 attachments { addAll(parsedAttachments) }
