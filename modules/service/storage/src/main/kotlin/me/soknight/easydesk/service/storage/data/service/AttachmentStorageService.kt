@@ -14,7 +14,7 @@ import org.koin.core.annotation.Single
 @Single
 class AttachmentStorageService(config: StorageConfig) {
 
-    private val rootPath: Path = config.rootPath
+    private val rootPath = Path(config.rootPath)
 
     fun openSource(storagePath: String): Source =
         SystemFileSystem.source(Path(rootPath, storagePath)).buffered()
