@@ -130,6 +130,8 @@ class MessageEventHandler(
             return emptyMap()
         }
         val storagePath = runCatching {
+            // contentSource may be a blocking IMAP stream for email attachments;
+            // store() writes to the local filesystem — both warrant Dispatchers.IO
             withContext(Dispatchers.IO) {
                 val bytes = attachment.contentSource.readByteArray()
                 if (bytes.isEmpty()) return@withContext null
@@ -142,7 +144,7 @@ class MessageEventHandler(
         return mapOf("local.storage_path" to JsonPrimitive(storagePath))
     }
 
-    internal suspend fun persistAttachmentMetadata(
+    internal suspend fun persistAttachmentMetadata( // internal for unit testing
         attachment: Attachment,
         messageId: Long,
         channelBrand: String,
