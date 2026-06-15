@@ -231,6 +231,12 @@ class VkAttachmentMapperTest {
             ownerId = 42L,
             sizes = listOf(
                 VkAttachment.Photo.Size(
+                    height = 100,
+                    type = "m",
+                    url = "https://cdn.vk.com/photo_small.jpg",
+                    width = 150,
+                ),
+                VkAttachment.Photo.Size(
                     height = 200,
                     type = "x",
                     url = "https://cdn.vk.com/photo.jpg",
