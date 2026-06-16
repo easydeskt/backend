@@ -18,12 +18,15 @@ import me.soknight.easydesk.core.logging.info
 import me.soknight.easydesk.core.logging.warn
 import me.soknight.easydesk.service.channels.data.domain.Channel as ServiceChannel
 import me.soknight.easydesk.service.channels.data.repository.ChannelRepository
+import me.soknight.easydesk.service.vault.resolver.SecretReferenceResolver
 import org.koin.core.annotation.Single
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 
 @Single(binds = [ChannelProvider::class])
-internal class EmailProviderBinding : ChannelProvider by EmailProvider
+internal class EmailProviderBinding(
+    emailProvider: EmailProvider,
+) : ChannelProvider by emailProvider
 
 /**
  * [ChannelProvider] implementation for Email (IMAP/SMTP).
@@ -34,7 +37,10 @@ internal class EmailProviderBinding : ChannelProvider by EmailProvider
  * @see EmailBrand
  * @see EmailIdentity
  */
-object EmailProvider : ChannelProvider, KoinComponent {
+@Single(binds = [EmailProvider::class])
+class EmailProvider(
+    private val secretReferenceResolver: SecretReferenceResolver,
+) : ChannelProvider, KoinComponent {
 
     private val channelRepository by lazy { get<ChannelRepository>() }
     private val json = Json { ignoreUnknownKeys = true }
@@ -96,8 +102,9 @@ object EmailProvider : ChannelProvider, KoinComponent {
             System.getenv(result.groupValues[1]) ?: result.value
         }
 
-    private fun startChannel(serviceChannel: ServiceChannel, scope: CoroutineScope, eventBus: EventBus) {
-        val resolvedJson = resolveEnvVars(serviceChannel.config.toString())
+    private suspend fun startChannel(serviceChannel: ServiceChannel, scope: CoroutineScope, eventBus: EventBus) {
+        val withVaultSecrets = secretReferenceResolver.resolve(serviceChannel.config.toString())
+        val resolvedJson = resolveEnvVars(withVaultSecrets)
         val config = json.decodeFromString<EmailConfig>(resolvedJson)
         val channel = EmailChannel(serviceChannel.displayName, serviceChannel.displayName, config)
         val poller = ImapPoller(channel, logger)
