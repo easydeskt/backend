@@ -15,6 +15,8 @@ data class VaultConfig(val encryptionKey: ByteArray) {
 
     override fun hashCode(): Int = encryptionKey.contentHashCode()
 
+    override fun toString(): String = "VaultConfig(encryptionKey=***)"
+
     companion object {
         const val KEY_BYTES = 32
     }
