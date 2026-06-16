@@ -22,6 +22,7 @@ dependencies {
     implementation(projects.modules.service.storage)
     implementation(projects.modules.service.templates)
     implementation(projects.modules.service.tickets)
+    implementation(projects.modules.service.vault)
     implementation(projects.modules.supervisor.api)
     implementation(projects.modules.supervisor.telegram)
 

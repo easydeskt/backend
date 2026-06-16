@@ -1,8 +1,10 @@
 package me.soknight.easydesk.app.server.plugin
 
 import io.ktor.server.application.*
+import java.util.Base64
 import me.soknight.easydesk.app.EasyDeskApp
 import me.soknight.easydesk.service.storage.config.StorageConfig
+import me.soknight.easydesk.service.vault.config.VaultConfig
 import org.koin.dsl.module
 import org.koin.ktor.plugin.Koin
 import org.koin.logger.slf4jLogger
@@ -19,6 +21,10 @@ fun Application.configureKoin() {
                 val rootPath = config.propertyOrNull("easydesk.storage.rootPath")?.getString()
                     ?: "./data/attachments"
                 StorageConfig(rootPath)
+            }
+            single {
+                val keyBase64 = config.property("easydesk.vault.encryptionKey").getString()
+                VaultConfig(Base64.getDecoder().decode(keyBase64))
             }
         })
         withConfiguration<EasyDeskApp>()

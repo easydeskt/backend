@@ -27,5 +27,8 @@ easydesk:
       groupId: "$TELEGRAM_SUPERVISOR_GROUP_ID"
       superadminId: "$TELEGRAM_SUPERVISOR_SUPERADMIN_ID"
 
+  vault:
+    encryptionKey: "$VAULT_ENCRYPTION_KEY"
+
   workspace:
     name: "$WORKSPACE_NAME:EasyDesk"
