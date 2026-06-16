@@ -5,14 +5,14 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.time.Instant
 import kotlinx.coroutines.test.runTest
 import me.soknight.easydesk.service.vault.domain.VaultSecret
 import me.soknight.easydesk.service.vault.encryption.VaultEncryptionService
 import me.soknight.easydesk.service.vault.repository.VaultSecretRepository
-import kotlin.test.BeforeTest
-import kotlin.test.Test
-import kotlin.test.assertEquals
 
 class SecretReferenceResolverTest {
 
