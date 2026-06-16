@@ -1,5 +1,6 @@
 package me.soknight.easydesk.service.vault.persistence.repository
 
+import java.sql.SQLException
 import kotlin.time.Clock
 import me.soknight.easydesk.core.persistence.suspendTransaction
 import me.soknight.easydesk.service.vault.domain.VaultSecret
@@ -14,17 +15,21 @@ import org.koin.core.annotation.Single
 internal class DefaultVaultSecretRepository : VaultSecretRepository {
 
     override suspend fun create(name: String, description: String?, encryptedValue: String): VaultSecret? =
-        suspendTransaction {
-            val exists = VaultSecretEntity.find { VaultSecretsTable.name eq name }.count() > 0
-            if (exists) return@suspendTransaction null
-            val now = Clock.System.now()
-            VaultSecretEntity.new {
-                this.createdAt = now
-                this.description = description
-                this.encryptedValue = encryptedValue
-                this.name = name
-                this.updatedAt = now
-            }.toDomain()
+        try {
+            suspendTransaction {
+                val now = Clock.System.now()
+                VaultSecretEntity.new {
+                    this.createdAt = now
+                    this.description = description
+                    this.encryptedValue = encryptedValue
+                    this.name = name
+                    this.updatedAt = now
+                }.toDomain()
+            }
+        } catch (e: Exception) {
+            // unique constraint violation (PG SQLSTATE 23505) → name already exists
+            val sqlEx = generateSequence(e as Throwable) { it.cause }.filterIsInstance<SQLException>().firstOrNull()
+            if (sqlEx?.sqlState == "23505") null else throw e
         }
 
     override suspend fun delete(id: Long): Boolean =
