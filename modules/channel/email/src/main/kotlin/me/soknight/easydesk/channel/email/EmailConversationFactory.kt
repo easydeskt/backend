@@ -13,9 +13,7 @@ import org.koin.core.annotation.Single
  * @see ConversationFactory
  */
 @Single
-class EmailConversationFactory(
-    private val emailProvider: EmailProvider,
-) : ConversationFactory {
+internal class EmailConversationFactory : ConversationFactory {
 
     override val brand: ChannelBrand get() = EmailBrand
 
@@ -24,7 +22,7 @@ class EmailConversationFactory(
         nativeId: String,
         attributes: Attributes,
     ): Conversation? {
-        val channel = emailProvider.getChannel(serviceChannelId) ?: return null
+        val channel = EmailProvider.getChannel(serviceChannelId) ?: return null
         return EmailConversation(
             attributes = attributes,
             channel = channel,

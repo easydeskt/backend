@@ -24,9 +24,7 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 
 @Single(binds = [ChannelProvider::class])
-internal class EmailProviderBinding(
-    emailProvider: EmailProvider,
-) : ChannelProvider by emailProvider
+internal class EmailProviderBinding : ChannelProvider by EmailProvider
 
 /**
  * [ChannelProvider] implementation for Email (IMAP/SMTP).
@@ -37,12 +35,10 @@ internal class EmailProviderBinding(
  * @see EmailBrand
  * @see EmailIdentity
  */
-@Single(binds = [EmailProvider::class])
-internal class EmailProvider(
-    private val secretReferenceResolver: SecretReferenceResolver,
-) : ChannelProvider, KoinComponent {
+object EmailProvider : ChannelProvider, KoinComponent {
 
     private val channelRepository by lazy { get<ChannelRepository>() }
+    private val secretReferenceResolver by lazy { get<SecretReferenceResolver>() }
     private val json = Json { ignoreUnknownKeys = true }
     private val logger = getLogger()
 
