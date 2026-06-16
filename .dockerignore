@@ -1,0 +1,13 @@
+.claude/
+.git/
+.github/
+.gradle/
+.idea/
+.kotlin/
+build/
+data/
+docs/
+logs/
+run/
+**/*.md
+.env*
