@@ -8,11 +8,12 @@ import kotlinx.io.files.SystemFileSystem
 import kotlinx.io.readByteArray
 import me.soknight.easydesk.channel.api.model.Attachment.Kind
 import me.soknight.easydesk.service.storage.config.StorageConfig
+import org.koin.core.annotation.Provided
 import org.koin.core.annotation.Single
 
 /** Reads and writes attachment bytes on local FS by opaque [storagePath]. */
 @Single
-class AttachmentStorageService(config: StorageConfig) {
+class AttachmentStorageService(@Provided config: StorageConfig) {
 
     private val rootPath = Path(config.rootPath)
 
