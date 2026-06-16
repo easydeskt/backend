@@ -155,6 +155,26 @@ class VaultRoutesTest {
     // ─── PUT /api/v1/vault/{id} ──────────────────────────────────────────────────
 
     @Test
+    fun `PUT vault returns 401 when unauthenticated`() = withApp {
+        coEvery { authenticator.authenticate(any()) } returns null
+        val response = client.put("/api/v1/vault/1") {
+            contentType(ContentType.Application.Json)
+            setBody("""{"description":"updated"}""")
+        }
+        assertEquals(HttpStatusCode.Unauthorized, response.status)
+    }
+
+    @Test
+    fun `PUT vault returns 403 for operator`() = withApp {
+        coEvery { authenticator.authenticate(any()) } returns TestFixtures.operatorPrincipal
+        val response = client.put("/api/v1/vault/1") {
+            contentType(ContentType.Application.Json)
+            setBody("""{"description":"updated"}""")
+        }
+        assertEquals(HttpStatusCode.Forbidden, response.status)
+    }
+
+    @Test
     fun `PUT vault returns 404 when secret does not exist`() = withApp {
         coEvery { authenticator.authenticate(any()) } returns TestFixtures.adminPrincipal
         coEvery { repository.update(99L, any(), any()) } returns null
@@ -192,6 +212,18 @@ class VaultRoutesTest {
     }
 
     // ─── DELETE /api/v1/vault/{id} ───────────────────────────────────────────────
+
+    @Test
+    fun `DELETE vault returns 401 when unauthenticated`() = withApp {
+        coEvery { authenticator.authenticate(any()) } returns null
+        assertEquals(HttpStatusCode.Unauthorized, client.delete("/api/v1/vault/1").status)
+    }
+
+    @Test
+    fun `DELETE vault returns 403 for operator`() = withApp {
+        coEvery { authenticator.authenticate(any()) } returns TestFixtures.operatorPrincipal
+        assertEquals(HttpStatusCode.Forbidden, client.delete("/api/v1/vault/1").status)
+    }
 
     @Test
     fun `DELETE vault returns 404 when secret does not exist`() = withApp {
