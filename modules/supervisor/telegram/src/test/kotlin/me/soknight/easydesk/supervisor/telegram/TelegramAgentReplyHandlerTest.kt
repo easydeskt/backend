@@ -7,11 +7,11 @@ import dev.inmo.tgbotapi.types.MessageId
 import dev.inmo.tgbotapi.types.MessageThreadId
 import dev.inmo.tgbotapi.types.RawChatId
 import dev.inmo.tgbotapi.types.UserId
-import dev.inmo.tgbotapi.types.message.abstracts.CommonForumContentMessage
 import dev.inmo.tgbotapi.types.message.abstracts.CommonMessage
 import dev.inmo.tgbotapi.types.message.abstracts.Message
 import dev.inmo.tgbotapi.types.message.abstracts.OptionallyFromUserMessage
 import dev.inmo.tgbotapi.types.message.content.TextContent
+import dev.inmo.tgbotapi.utils.extensions.threadIdOrNull
 import io.ktor.http.ContentType
 import io.mockk.clearMocks
 import io.mockk.coEvery
@@ -19,7 +19,9 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
+import io.mockk.mockkStatic
 import io.mockk.unmockkObject
+import io.mockk.unmockkStatic
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -94,6 +96,7 @@ class TelegramAgentReplyHandlerTest {
     @BeforeTest
     fun setUp() {
         mockkObject(TelegramAttachmentParser)
+        mockkStatic("dev.inmo.tgbotapi.utils.extensions.OptionalThreadIdKt")
         clearMocks(
             bot, agentRepository, conversationRegistry, eventBus,
             relayedMessageRegistry, ticketMessageAttachmentRepository,
@@ -117,6 +120,7 @@ class TelegramAgentReplyHandlerTest {
     @AfterTest
     fun tearDown() {
         unmockkObject(TelegramAttachmentParser)
+        unmockkStatic("dev.inmo.tgbotapi.utils.extensions.OptionalThreadIdKt")
     }
 
     @Test
@@ -257,11 +261,11 @@ class TelegramAgentReplyHandlerTest {
     // -------------- HELPERS ------------------------------------------------------------------------------------------
 
     /**
-     * Creates a mock forum content message (has a non-null threadId, triggering the relay path).
-     * Uses [CommonForumContentMessage] so that [threadId] is a direct member MockK can intercept,
-     * avoiding the need for mockkStatic on the threadIdOrNull extension.
+     * Creates a mock message with a non-null [threadIdOrNull], triggering the relay path.
+     * The extension property is stubbed via mockkStatic to avoid value-class boxing issues
+     * that arise when MockK tries to intercept CommonForumContentMessage.threadId directly.
      */
-    private fun makeThreadedMessage(text: String): CommonForumContentMessage<TextContent> {
+    private fun makeThreadedMessage(text: String): CommonMessage<TextContent> {
         val content = mockk<TextContent>(relaxed = true) { every { this@mockk.text } returns text }
         val replyToMessage = mockk<Message>(relaxed = true) {
             every { messageId } returns replyMessageId
@@ -269,12 +273,13 @@ class TelegramAgentReplyHandlerTest {
         val userMock = mockk<dev.inmo.tgbotapi.types.chat.CommonUser>(relaxed = true) {
             every { id } returns UserId(RawChatId(userId))
         }
-        return mockk<CommonForumContentMessage<TextContent>>(relaxed = true) {
+        val message = mockk<CommonMessage<TextContent>>(relaxed = true) {
             every { this@mockk.content } returns content
-            every { this@mockk.threadId } returns MessageThreadId(7L)
             every { replyTo } returns replyToMessage
             every { (this@mockk as OptionallyFromUserMessage).from } returns userMock
         }
+        every { message.threadIdOrNull } returns MessageThreadId(7L)
+        return message
     }
 
     /**

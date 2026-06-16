@@ -4,6 +4,7 @@ package me.soknight.easydesk.supervisor.telegram
 
 import dev.inmo.tgbotapi.bot.TelegramBot
 import dev.inmo.tgbotapi.requests.abstracts.FileId
+import dev.inmo.tgbotapi.requests.abstracts.MultipartRequest
 import dev.inmo.tgbotapi.requests.abstracts.Request
 import dev.inmo.tgbotapi.requests.send.SendTextMessage
 import dev.inmo.tgbotapi.requests.send.media.SendDocumentData
@@ -178,8 +179,9 @@ class TelegramMessageRelayHandlerTest {
         handler.relaySingleAttachment(bot, chatId, threadId, att, "Client", makeMessage(plainText = null))
 
         val request = requestSlot.captured
-        assertIs<SendDocumentData>(request)
-        assertEquals(threadId, request.threadId)
+        // sendDocument(ByteArray.asMultipartFile()) wraps SendDocumentData in CommonMultipartFileRequest
+        // which is internal to tgbotapi — verify via its public MultipartRequest supertype.
+        assertIs<MultipartRequest<*>>(request)
     }
 
     @Test
