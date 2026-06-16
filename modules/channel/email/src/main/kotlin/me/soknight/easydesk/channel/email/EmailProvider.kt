@@ -38,7 +38,7 @@ internal class EmailProviderBinding(
  * @see EmailIdentity
  */
 @Single(binds = [EmailProvider::class])
-class EmailProvider(
+internal class EmailProvider(
     private val secretReferenceResolver: SecretReferenceResolver,
 ) : ChannelProvider, KoinComponent {
 
