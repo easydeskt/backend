@@ -14,8 +14,10 @@ import org.koin.core.annotation.Single
 @Single
 class VaultEncryptionService(@Provided private val config: VaultConfig) {
 
+    private val secureRandom = SecureRandom()
+
     fun encrypt(plaintext: String): String {
-        val iv = ByteArray(IV_BYTES).also { SecureRandom().nextBytes(it) }
+        val iv = ByteArray(IV_BYTES).also(secureRandom::nextBytes)
         val ciphertext = buildCipher(Cipher.ENCRYPT_MODE, iv).doFinal(plaintext.toByteArray(Charsets.UTF_8))
         return Base64.getEncoder().encodeToString(iv + ciphertext)
     }
