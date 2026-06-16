@@ -13,6 +13,7 @@ dependencies {
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.ktor.server.core)
     implementation(projects.modules.service.channels)
+    implementation(projects.modules.service.vault)
 
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.ktor.client.mock)

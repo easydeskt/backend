@@ -27,6 +27,7 @@ import me.soknight.easydesk.core.logging.getLogger
 import me.soknight.easydesk.core.logging.info
 import me.soknight.easydesk.core.logging.warn
 import me.soknight.easydesk.service.channels.data.repository.ChannelRepository
+import me.soknight.easydesk.service.vault.resolver.SecretReferenceResolver
 import org.koin.core.annotation.Single
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
@@ -46,6 +47,7 @@ internal class VKontakteProviderBinding : ChannelProvider by VKontakteProvider
 object VKontakteProvider : ChannelProvider, KoinComponent {
 
     private val channelRepository by lazy { get<ChannelRepository>() }
+    private val secretReferenceResolver by lazy { get<SecretReferenceResolver>() }
     private val httpClient = HttpClient(CIO) {
         install(HttpTimeout) {
             connectTimeoutMillis = 10_000
@@ -86,7 +88,8 @@ object VKontakteProvider : ChannelProvider, KoinComponent {
         logger.info { "Starting ${serviceChannels.size} VKontakte channel(s)" }
 
         for (serviceChannel in serviceChannels) {
-            val resolvedJson = resolveEnvVars(serviceChannel.config.toString())
+            val withVaultSecrets = secretReferenceResolver.resolve(serviceChannel.config.toString())
+            val resolvedJson = resolveEnvVars(withVaultSecrets)
             val config = json.decodeFromString<VKontakteConfig>(resolvedJson)
             val channel = VKontakteChannel(serviceChannel.displayName, serviceChannel.displayName, config)
             val bot = vkBot(config.groupId, config.token)
