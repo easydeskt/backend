@@ -30,13 +30,15 @@ import me.soknight.easydesk.core.event.EventBus
 import me.soknight.easydesk.core.logging.info
 import me.soknight.easydesk.core.logging.warn
 import me.soknight.easydesk.service.channels.data.repository.ChannelRepository
+import me.soknight.easydesk.service.vault.resolver.SecretReferenceResolver
 import org.slf4j.Logger
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Instant
 
 internal class ChannelProviderDelegate(
-    private val logger: Logger,
     private val channelRepository: ChannelRepository,
+    private val logger: Logger,
+    private val secretReferenceResolver: SecretReferenceResolver,
 ) {
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -85,7 +87,8 @@ internal class ChannelProviderDelegate(
     // -------------- PRIVATE IMPLEMENTATION ---------------------------------------------------------------------------
 
     private suspend fun startChannel(serviceChannel: me.soknight.easydesk.service.channels.data.domain.Channel, scope: CoroutineScope, eventBus: EventBus) {
-        val resolvedJson = resolveEnvVars(serviceChannel.config.toString())
+        val withVaultSecrets = secretReferenceResolver.resolve(serviceChannel.config.toString())
+        val resolvedJson = resolveEnvVars(withVaultSecrets)
         val config = json.decodeFromString<TelegramConfig>(resolvedJson)
         val channel = TelegramChannel(serviceChannel.displayName, serviceChannel.displayName, config)
         val bot = telegramBot(config.token)

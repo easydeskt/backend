@@ -9,6 +9,7 @@ import me.soknight.easydesk.channel.telegram.internal.ChannelProviderDelegate
 import me.soknight.easydesk.core.event.EventBus
 import me.soknight.easydesk.core.logging.getLogger
 import me.soknight.easydesk.service.channels.data.repository.ChannelRepository
+import me.soknight.easydesk.service.vault.resolver.SecretReferenceResolver
 import org.koin.core.annotation.Single
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
@@ -29,7 +30,7 @@ internal class TelegramProviderBinding : ChannelProvider by TelegramProvider
  */
 object TelegramProvider : ChannelProvider, KoinComponent {
 
-    private val delegate by lazy { ChannelProviderDelegate(getLogger(), get<ChannelRepository>()) }
+    private val delegate by lazy { ChannelProviderDelegate(get<ChannelRepository>(), getLogger(), get<SecretReferenceResolver>()) }
 
     override val brand get() = TelegramBrand
 

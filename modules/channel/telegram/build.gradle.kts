@@ -10,6 +10,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.ktgbotapi)
     implementation(projects.modules.service.channels)
+    implementation(projects.modules.service.vault)
 
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockk)
