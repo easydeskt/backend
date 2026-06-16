@@ -1,15 +1,13 @@
+@file:OptIn(ExperimentalKtorApi::class)
+
 package me.soknight.easydesk.api.route
 
-import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.call
-import io.ktor.server.request.receive
-import io.ktor.server.response.respond
-import io.ktor.server.routing.Route
-import io.ktor.server.routing.delete
-import io.ktor.server.routing.get
-import io.ktor.server.routing.post
-import io.ktor.server.routing.put
-import io.ktor.server.routing.route
+import io.ktor.http.*
+import io.ktor.server.request.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
+import io.ktor.server.routing.openapi.*
+import io.ktor.utils.io.*
 import kotlin.time.Instant
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -38,6 +36,13 @@ class VaultRoutes(
                     return@get call.respond(HttpStatusCode.Forbidden, ServerErrorDto.Forbidden)
                 }
                 call.respond(HttpStatusCode.OK, secretRepository.findAll().map { it.toResponse() })
+            }.describe {
+                summary = "List vault secrets"
+                responses {
+                    HttpStatusCode.OK { description = "OK" }
+                    HttpStatusCode.Unauthorized { description = "Unauthorized" }
+                    HttpStatusCode.Forbidden { description = "Forbidden" }
+                }
             }
 
             post {
@@ -59,6 +64,15 @@ class VaultRoutes(
                 val secret = secretRepository.create(req.name, req.description, encryptionService.encrypt(req.value))
                     ?: return@post call.respond(HttpStatusCode.Conflict, ServerErrorDto.Conflict)
                 call.respond(HttpStatusCode.Created, secret.toResponse())
+            }.describe {
+                summary = "Create vault secret"
+                responses {
+                    HttpStatusCode.Created { description = "Created" }
+                    HttpStatusCode.BadRequest { description = "Bad request" }
+                    HttpStatusCode.Unauthorized { description = "Unauthorized" }
+                    HttpStatusCode.Forbidden { description = "Forbidden" }
+                    HttpStatusCode.Conflict { description = "Conflict" }
+                }
             }
 
             put("{id}") {
@@ -80,6 +94,15 @@ class VaultRoutes(
                 val secret = secretRepository.update(id, req.description, encryptedValue)
                     ?: return@put call.respond(HttpStatusCode.NotFound, ServerErrorDto.NotFound)
                 call.respond(HttpStatusCode.OK, secret.toResponse())
+            }.describe {
+                summary = "Update vault secret"
+                responses {
+                    HttpStatusCode.OK { description = "OK" }
+                    HttpStatusCode.BadRequest { description = "Bad request" }
+                    HttpStatusCode.Unauthorized { description = "Unauthorized" }
+                    HttpStatusCode.Forbidden { description = "Forbidden" }
+                    HttpStatusCode.NotFound { description = "Not found" }
+                }
             }
 
             delete("{id}") {
@@ -94,9 +117,18 @@ class VaultRoutes(
                     return@delete call.respond(HttpStatusCode.NotFound, ServerErrorDto.NotFound)
                 }
                 call.respond(HttpStatusCode.NoContent)
+            }.describe {
+                summary = "Delete vault secret"
+                responses {
+                    HttpStatusCode.NoContent { description = "No content" }
+                    HttpStatusCode.BadRequest { description = "Bad request" }
+                    HttpStatusCode.Unauthorized { description = "Unauthorized" }
+                    HttpStatusCode.Forbidden { description = "Forbidden" }
+                    HttpStatusCode.NotFound { description = "Not found" }
+                }
             }
 
-        }
+        }.describe { tag("Vault") }
     }
 
     @Serializable
@@ -120,7 +152,7 @@ class VaultRoutes(
 }
 
 @Serializable
-data class VaultSecretResponse(
+internal data class VaultSecretResponse(
     @SerialName("description") val description: String?,
     @SerialName("id") val id: Long,
     @SerialName("name") val name: String,

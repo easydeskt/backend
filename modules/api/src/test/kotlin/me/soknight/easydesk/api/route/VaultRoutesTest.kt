@@ -122,6 +122,28 @@ class VaultRoutesTest {
     }
 
     @Test
+    fun `POST vault returns 400 when name exceeds 64 characters`() = withApp {
+        coEvery { authenticator.authenticate(any()) } returns TestFixtures.adminPrincipal
+        val longName = "A" + "B".repeat(64) // 65 chars, valid pattern but too long
+        val response = client.post("/api/v1/vault") {
+            contentType(ContentType.Application.Json)
+            setBody("""{"name":"$longName","value":"val"}""")
+        }
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+    }
+
+    @Test
+    fun `POST vault returns 400 when description exceeds 500 characters`() = withApp {
+        coEvery { authenticator.authenticate(any()) } returns TestFixtures.adminPrincipal
+        val longDesc = "x".repeat(501)
+        val response = client.post("/api/v1/vault") {
+            contentType(ContentType.Application.Json)
+            setBody("""{"name":"VALID","description":"$longDesc","value":"val"}""")
+        }
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+    }
+
+    @Test
     fun `POST vault returns 409 when name already exists`() = withApp {
         coEvery { authenticator.authenticate(any()) } returns TestFixtures.adminPrincipal
         every { encryptionService.encrypt(any()) } returns "encrypted_blob"
