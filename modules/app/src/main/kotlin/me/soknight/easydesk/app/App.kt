@@ -11,6 +11,7 @@ import org.koin.core.annotation.KoinApplication
 import org.koin.core.annotation.Module
 import org.slf4j.LoggerFactory
 import org.slf4j.bridge.SLF4JBridgeHandler
+import java.util.concurrent.CountDownLatch
 import java.util.logging.Level
 import java.util.logging.LogManager
 
@@ -48,7 +49,13 @@ fun main(args: Array<String>) {
     Runtime.getRuntime().addShutdownHook(Thread(::shutdown, "Shutdown Thread"))
 
     startServer(args)
-    EasyDeskShell.start()
+
+    if (System.console() != null) {
+        EasyDeskShell.start()
+    } else {
+        // no interactive terminal (e.g. Docker) — block main thread until JVM shutdown
+        CountDownLatch(1).await()
+    }
 }
 
 private fun shutdown() {
