@@ -102,6 +102,14 @@ object EmailProvider : ChannelProvider, KoinComponent {
         val withVaultSecrets = secretReferenceResolver.resolve(serviceChannel.config.toString())
         val resolvedJson = resolveEnvVars(withVaultSecrets)
         val config = json.decodeFromString<EmailConfig>(resolvedJson)
+        val imap = config.imap
+        if (imap.host.isNullOrBlank() || imap.host.startsWith("\${") ||
+            imap.username.isNullOrBlank() || imap.username.startsWith("\${") ||
+            imap.password.isNullOrBlank() || imap.password.startsWith("\${")
+        ) {
+            logger.warn { "Skipping email channel '${serviceChannel.displayName}' (id=${serviceChannel.id}): IMAP host, username, or password is not configured or not resolved" }
+            return
+        }
         val channel = EmailChannel(serviceChannel.displayName, serviceChannel.displayName, config)
         val poller = ImapPoller(channel, logger)
         activeChannels[serviceChannel.id] = channel

@@ -16,7 +16,7 @@ import me.soknight.easydesk.channel.api.ChannelConfig
 @Serializable
 data class TelegramConfig(
     @SerialName("api_url") val apiUrl: String = Defaults.API_URL,
-    @SerialName("token") val token: String,
+    @SerialName("token") val token: String? = null,
     @SerialName("polling") val polling: Polling? = null,
     @SerialName("webhook") val webhook: Webhook? = null,
 ) : ChannelConfig {

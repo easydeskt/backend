@@ -1,7 +1,9 @@
 package me.soknight.easydesk.channel.telegram.internal
 
 import dev.inmo.tgbotapi.bot.TelegramBot
+import dev.inmo.tgbotapi.bot.exceptions.CommonRequestException
 import dev.inmo.tgbotapi.bot.ktor.telegramBot
+import dev.inmo.tgbotapi.extensions.api.bot.getMe
 import dev.inmo.tgbotapi.extensions.behaviour_builder.buildBehaviourWithLongPolling
 import dev.inmo.tgbotapi.extensions.behaviour_builder.triggers_handling.onContentMessage
 import dev.inmo.tgbotapi.types.chat.PrivateChat
@@ -90,8 +92,19 @@ internal class ChannelProviderDelegate(
         val withVaultSecrets = secretReferenceResolver.resolve(serviceChannel.config.toString())
         val resolvedJson = resolveEnvVars(withVaultSecrets)
         val config = json.decodeFromString<TelegramConfig>(resolvedJson)
+        val token = config.token
+        if (token == null || token.startsWith("\${")) {
+            logger.warn { "Skipping Telegram channel '${serviceChannel.displayName}' (id=${serviceChannel.id}): token is not configured or not resolved" }
+            return
+        }
+        val bot = telegramBot(token)
+        try {
+            bot.getMe()
+        } catch (e: CommonRequestException) {
+            logger.warn { "Skipping Telegram channel '${serviceChannel.displayName}' (id=${serviceChannel.id}): token rejected by Telegram — ${e.response.description}" }
+            return
+        }
         val channel = TelegramChannel(serviceChannel.displayName, serviceChannel.displayName, config)
-        val bot = telegramBot(config.token)
         activeBots[serviceChannel.id] = channel to bot
         val job = bot.buildBehaviourWithLongPolling(scope) {
             onContentMessage { message ->

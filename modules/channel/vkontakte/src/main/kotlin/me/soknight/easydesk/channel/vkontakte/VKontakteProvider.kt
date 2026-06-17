@@ -26,6 +26,7 @@ import me.soknight.easydesk.core.event.EventBus
 import me.soknight.easydesk.core.logging.getLogger
 import me.soknight.easydesk.core.logging.info
 import me.soknight.easydesk.core.logging.warn
+import me.soknight.easydesk.service.channels.data.domain.Channel as ServiceChannel
 import me.soknight.easydesk.service.channels.data.repository.ChannelRepository
 import me.soknight.easydesk.service.vault.resolver.SecretReferenceResolver
 import org.koin.core.annotation.Single
@@ -86,41 +87,53 @@ object VKontakteProvider : ChannelProvider, KoinComponent {
     override suspend fun start(scope: CoroutineScope, eventBus: EventBus) {
         val serviceChannels = channelRepository.findByBrand(VKontakteBrand.identifier, enabledOnly = true)
         logger.info { "Starting ${serviceChannels.size} VKontakte channel(s)" }
-
         for (serviceChannel in serviceChannels) {
-            val withVaultSecrets = secretReferenceResolver.resolve(serviceChannel.config.toString())
-            val resolvedJson = resolveEnvVars(withVaultSecrets)
-            val config = json.decodeFromString<VKontakteConfig>(resolvedJson)
-            val channel = VKontakteChannel(serviceChannel.displayName, serviceChannel.displayName, config)
-            val bot = vkBot(config.groupId, config.token)
+            startChannel(serviceChannel, scope, eventBus)
+        }
+    }
 
-            activeChannels[serviceChannel.id] = channel
-            activeBots[serviceChannel.id] = bot
-
-            // Long Poll takes priority; both enabled simultaneously is not supported
-            when {
-                config.longpoll?.isEnabled == true -> {
-                    val job = bot.buildBehaviourWithLongPolling(scope) {
-                        registerHandlers(channel, eventBus)
-                    }
-                    lpJobs[serviceChannel.id] = job
-                    logger.info { "Started VK Long Poll for channel '${serviceChannel.displayName}'" }
+    private suspend fun startChannel(serviceChannel: ServiceChannel, scope: CoroutineScope, eventBus: EventBus) {
+        val withVaultSecrets = secretReferenceResolver.resolve(serviceChannel.config.toString())
+        val resolvedJson = resolveEnvVars(withVaultSecrets)
+        val config = json.decodeFromString<VKontakteConfig>(resolvedJson)
+        val token = config.token
+        if (token.isBlank() || token.startsWith("\${")) {
+            logger.warn { "Skipping VKontakte channel '${serviceChannel.displayName}' (id=${serviceChannel.id}): token is not configured or not resolved" }
+            return
+        }
+        val channel = VKontakteChannel(serviceChannel.displayName, serviceChannel.displayName, config)
+        val bot = vkBot(config.groupId, token)
+        try {
+            bot.apiClient.getLongPollServer()
+        } catch (e: Exception) {
+            bot.apiClient.close()
+            logger.warn { "Skipping VKontakte channel '${serviceChannel.displayName}' (id=${serviceChannel.id}): VK API rejected the configuration — ${e.message}" }
+            return
+        }
+        activeChannels[serviceChannel.id] = channel
+        activeBots[serviceChannel.id] = bot
+        // Long Poll takes priority; both enabled simultaneously is not supported
+        when {
+            config.longpoll?.isEnabled == true -> {
+                val job = bot.buildBehaviourWithLongPolling(scope) {
+                    registerHandlers(channel, eventBus)
                 }
-
-                config.callback?.isEnabled == true -> {
-                    val application = scope as? Application
-                        ?: error("Callback mode requires Ktor Application scope")
-                    bot.buildBehaviourWithCallbackApi(
-                        application = application,
-                        confirmationCode = config.callback.confirmationCode
-                            ?: error("callback.confirmation_code is required"),
-                        listenPath = config.callback.listenPath,
-                        secret = config.callback.secret,
-                    ) {
-                        registerHandlers(channel, eventBus)
-                    }
-                    logger.info { "Registered VK Callback route for channel '${serviceChannel.displayName}'" }
+                lpJobs[serviceChannel.id] = job
+                logger.info { "Started VK Long Poll for channel '${serviceChannel.displayName}'" }
+            }
+            config.callback?.isEnabled == true -> {
+                val application = scope as? Application
+                    ?: error("Callback mode requires Ktor Application scope")
+                bot.buildBehaviourWithCallbackApi(
+                    application = application,
+                    confirmationCode = config.callback.confirmationCode
+                        ?: error("callback.confirmation_code is required"),
+                    listenPath = config.callback.listenPath,
+                    secret = config.callback.secret,
+                ) {
+                    registerHandlers(channel, eventBus)
                 }
+                logger.info { "Registered VK Callback route for channel '${serviceChannel.displayName}'" }
             }
         }
     }

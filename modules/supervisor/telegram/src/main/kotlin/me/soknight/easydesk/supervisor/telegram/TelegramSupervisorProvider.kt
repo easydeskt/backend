@@ -4,7 +4,9 @@ package me.soknight.easydesk.supervisor.telegram
 
 import dev.inmo.tgbotapi.bot.TelegramBot
 import dev.inmo.tgbotapi.bot.exceptions.CommonRequestException
+import dev.inmo.tgbotapi.bot.exceptions.UnauthorizedException
 import dev.inmo.tgbotapi.bot.ktor.telegramBot
+import dev.inmo.tgbotapi.extensions.api.bot.getMe
 import dev.inmo.tgbotapi.extensions.api.chat.get.getChat
 import dev.inmo.tgbotapi.extensions.behaviour_builder.buildBehaviourWithLongPolling
 import dev.inmo.tgbotapi.types.chat.ExtendedPrivateChat
@@ -52,6 +54,8 @@ class TelegramSupervisorProvider(
         val displayName = try {
             val chat = bot.getChat(config.superadminId.toChatId())
             (chat as? ExtendedPrivateChat)?.firstName ?: "Superadmin"
+        } catch (e: UnauthorizedException) {
+            throw e
         } catch (e: CommonRequestException) {
             logger.warn("Could not fetch superadmin chat ({}), using fallback name — start a dialog with the bot to resolve this", e.response.description)
             "Superadmin"
@@ -62,12 +66,27 @@ class TelegramSupervisorProvider(
     }
 
     override suspend fun start(scope: CoroutineScope, eventBus: EventBus) {
-        val bot = telegramBot(config.token)
-        bootstrapSuperadmin(bot)
+        val token = config.token
+        if (token.isBlank()) {
+            logger.warn("Telegram supervisor not started: TELEGRAM_SUPERVISOR_BOT_TOKEN is not configured")
+            return
+        }
+
+        val bot = telegramBot(token)
+
+        try {
+            bot.getMe()
+            bootstrapSuperadmin(bot)
+        } catch (e: CommonRequestException) {
+            logger.error("Telegram supervisor not started: bot token rejected by Telegram ({})", e.response.description)
+            return
+        }
+
         pollingJob = bot.buildBehaviourWithLongPolling(scope) {
             commandDispatcher.register(this, bot)
             agentReplyHandler.start(this, bot)
         }
+
         ticketEventHandler.start(scope, bot, eventBus)
         messageRelayHandler.start(scope, bot, eventBus)
     }

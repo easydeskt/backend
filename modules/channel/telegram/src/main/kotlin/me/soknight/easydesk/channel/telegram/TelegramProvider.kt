@@ -38,7 +38,7 @@ object TelegramProvider : ChannelProvider, KoinComponent {
         get() = delegate.channels
 
     override val configSchema by channelConfigSchema {
-        password("token", required = true)
+        password("token")
         url("api_url", defaultValue = "https://api.telegram.org")
 
         section("polling") {
